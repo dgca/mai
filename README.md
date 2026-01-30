@@ -1,4 +1,4 @@
-# mai
+# My AI Toolkit
 
 A collection of Claude Code plugins and skills.
 
