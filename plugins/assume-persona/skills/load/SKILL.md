@@ -1,7 +1,7 @@
 ---
 name: load
 description: Load and activate an existing persona by archetype name
-argument-hint: "<archetype> [archetype2] ..."
+argument-hint: "<archetype?> [archetype2] ..."
 disable-model-invocation: false
 ---
 
@@ -27,7 +27,15 @@ State file: `<cwd>/.claude/plugin-data/assume-persona/.state.json`
 1. **Parse archetypes** from `$ARGUMENTS`
    - Split on spaces to support multiple personas
    - Normalize each to kebab-case for matching
-   - If empty, show error: "Usage: /assume-persona:load <archetype> [archetype2] ..."
+   - If empty, list available personas and let user pick:
+     ```
+     Available personas:
+     - loud-guy (local)
+     - security-expert (user)
+
+     Which persona(s) to load?
+     ```
+     Wait for user response, then continue.
 
 2. **For each archetype, check for the persona file directly** (in precedence order):
    - `<cwd>/.claude/plugin-data/assume-persona/personas/<archetype>.md` (local)

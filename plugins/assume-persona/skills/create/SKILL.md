@@ -61,12 +61,9 @@ Personas can be saved to (do NOT search recursively from home):
 ```yaml
 ---
 archetype: <archetype>
-category: <category> # e.g., web-development, data-engineering, systems
-tags:
-  - <tag1>
-  - <tag2>
 created: <YYYY-MM-DD>
-triggers:
+category: <category> # optional, e.g., web-development, data-engineering, systems
+keywords: # optional, helps /assume-persona:recommend find this persona
   - <keyword1>
   - <keyword2>
 ---

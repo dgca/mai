@@ -1,7 +1,7 @@
 ---
 name: show
 description: Preview a persona's content without activating it
-argument-hint: "<archetype>"
+argument-hint: "<archetype?>"
 disable-model-invocation: true
 ---
 
@@ -23,7 +23,15 @@ Check these directories directly in order (do NOT search recursively from home):
 ## Instructions
 
 1. **Parse the archetype** from `$ARGUMENTS`
-   - If empty, show error: "Usage: /assume-persona:show <archetype>"
+   - If empty, list available personas and let user pick:
+     ```
+     Available personas:
+     - loud-guy (local)
+     - security-expert (user)
+
+     Which persona to preview?
+     ```
+     Wait for user response, then continue.
 
 2. **Check for the persona file directly** (in precedence order):
    - `<cwd>/.claude/plugin-data/assume-persona/personas/<archetype>.md` (local)
@@ -46,8 +54,7 @@ Check these directories directly in order (do NOT search recursively from home):
    **Source**: <local|user>
    **Created**: <date from frontmatter>
    **Category**: <category if present>
-   **Tags**: <tags if present>
-   **Triggers**: <triggers list>
+   **Keywords**: <keywords if present>
    **Lines**: <line count>
 
    ---

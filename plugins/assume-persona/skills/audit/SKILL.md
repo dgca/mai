@@ -75,7 +75,8 @@ Check these directories directly (do NOT search recursively from home):
      - ⚠ Too long: > 500 lines
 
    ### Frontmatter Check
-   - Required fields: archetype, created, triggers, category, tags
+   - Required fields: `archetype`, `created`
+   - Optional fields: `category`, `keywords`
    - Note which are present/missing
 
 6. **Spawn agent** to analyze content quality:

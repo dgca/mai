@@ -29,11 +29,9 @@ State file: `<cwd>/.claude/plugin-data/assume-persona/.state.json`
    - Do NOT use recursive search from parent directories
 
 2. **For each `*.md` file found**, parse the YAML frontmatter to extract:
-   - `archetype`: The persona identifier
-   - `created`: Creation date
-   - `triggers`: Keywords that suggest this persona
-   - `category`: Category grouping (if present)
-   - `tags`: Tags for filtering (if present)
+   - `archetype`: The persona identifier (required)
+   - `created`: Creation date (required)
+   - `category`: Category grouping (optional, default "uncategorized")
 
 3. **Also extract from content**:
    - **Description**: First line of the Role section (the line starting with "You are...")
@@ -48,24 +46,24 @@ State file: `<cwd>/.claude/plugin-data/assume-persona/.state.json`
 
 6. **If `$ARGUMENTS` provided**, filter to only show personas matching that category
 
-7. **Group by category** (if categories exist) and **display results**:
+7. **Display results** with one persona per block, blank line between each:
 
 ```
-## Available Personas
+Available Personas:
 
-### web-development
-| Archetype | Description | Quality | Active | Location |
-|-----------|-------------|---------|--------|----------|
-| typescript-fullstack | Expert TypeScript fullstack developer... | ✓ fresh, complete | ★ | user |
+Name: typescript-fullstack (active)
+Description: Expert TypeScript fullstack developer...
+Category: web-development
+Location: user
+Quality: ✓ fresh, complete
 
-### uncategorized
-| Archetype | Description | Quality | Active | Location |
-|-----------|-------------|---------|--------|----------|
-| django-backend | Expert Django backend developer... | ⚠ stale (8mo) | | local |
+Name: django-backend
+Description: Expert Django backend developer...
+Category: uncategorized
+Location: local
+Quality: ⚠ stale (8mo)
 
 Total: 2 personas (1 active)
-
-Legend: ★ = active, ✓ = good quality, ⚠ = needs attention
 ```
 
 8. **If no personas found**:

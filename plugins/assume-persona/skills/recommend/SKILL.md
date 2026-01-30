@@ -20,7 +20,7 @@ Check these directories directly (do NOT search recursively from home):
 
 1. **Scan all available personas**:
    - Read each `.md` file from all storage locations
-   - Parse YAML frontmatter to extract: `archetype`, `triggers`, `category`, `tags`
+   - Parse YAML frontmatter to extract: `archetype`, `category`, `keywords`
    - Read the role description (first paragraph after title)
 
 2. **Analyze current conversation context**:
@@ -30,7 +30,7 @@ Check these directories directly (do NOT search recursively from home):
    - What expertise would be most helpful?
 
 3. **Match personas to context**:
-   - Compare conversation topics against persona `triggers` and `tags`
+   - Compare conversation topics against persona `keywords`
    - Consider `category` relevance
    - Assess how well the persona's expertise fits the task
 

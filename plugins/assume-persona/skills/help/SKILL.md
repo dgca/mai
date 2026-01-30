@@ -18,16 +18,19 @@ Load subject matter expert personas to get specialized assistance.
 
 | Command | Description |
 |---------|-------------|
-| /assume-persona:create <name> | Research and create a new persona |
-| /assume-persona:load <name> | Load and activate a persona |
-| /assume-persona:list | List all available personas |
+| /assume-persona:create \<name> | Research and create a new persona |
+| /assume-persona:load \<name?> | Load and activate a persona |
+| /assume-persona:list \<category?> | List all available personas |
 | /assume-persona:recommend | Suggest personas for current context |
-| /assume-persona:show <name> | Preview a persona without activating |
+| /assume-persona:show \<name?> | Preview a persona without activating |
 | /assume-persona:status | Show currently active personas |
-| /assume-persona:clear [name] | Deactivate persona(s) |
-| /assume-persona:import <path> | Import persona from file/URL |
-| /assume-persona:audit [name] | Audit quality and offer improvements |
+| /assume-persona:clear \<name?> | Deactivate persona(s) |
+| /assume-persona:delete \<name?> | Permanently delete persona file(s) |
+| /assume-persona:import \<path> | Import persona from file/URL |
+| /assume-persona:audit \<name?> | Audit quality and offer improvements |
 | /assume-persona:help | Show this help |
+
+\<arg> = required, \<arg?> = optional (shows list to choose from)
 
 ### Quick Start
 
