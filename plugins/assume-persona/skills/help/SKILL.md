@@ -38,7 +38,7 @@ Load subject matter expert personas to get specialized assistance.
    /assume-persona:list
 
 2. Load a persona:
-   /assume-persona:load loud-guy
+   /assume-persona:load accessibility-expert
 
 3. Check what's active:
    /assume-persona:status
