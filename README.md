@@ -2,6 +2,12 @@
 
 A collection of Claude Code plugins and skills.
 
+## Requirements
+
+```
+node@^22.6.0
+```
+
 ## Installation
 
 ```
