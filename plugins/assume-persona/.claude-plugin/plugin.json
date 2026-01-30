@@ -1,0 +1,8 @@
+{
+  "name": "assume-persona",
+  "description": "Assume subject matter expert personas for better domain-specific assistance.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dan Cortes"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --experimental-strip-types --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/restore-personas.ts\""
+          }
+        ]
+      }
+    ]
+  }
+}

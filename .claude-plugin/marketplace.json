@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "mai",
+  "version": "1.0.0",
+  "description": "Collection of Claude Code plugins by @dgca",
+  "owner": {
+    "name": "Dan Cortes"
+  },
+  "plugins": [
+    {
+      "name": "assume-persona",
+      "description": "Assume subject matter expert personas for better domain-specific assistance",
+      "source": "./plugins/assume-persona",
+      "category": "productivity"
+    }
+  ]
+}
