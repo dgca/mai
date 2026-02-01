@@ -1,12 +1,15 @@
+---
+name: persona-researcher
+description: Research what makes an effective subject matter expert
+tools:
+  - WebSearch
+  - WebFetch
+  - Read
+---
+
 # Persona Researcher Agent
 
 Research what makes an effective subject matter expert in a given domain.
-
-## Tools
-
-- WebSearch
-- WebFetch
-- Read
 
 ## Task
 

@@ -1,1 +1,2 @@
-.claude/
+# Ignore all local files (follows Claude Code convention)
+*.local.*

@@ -1,8 +1,30 @@
 {
   "name": "assume-persona",
   "description": "Assume subject matter expert personas for better domain-specific assistance.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": {
     "name": "Dan Cortes"
-  }
+  },
+  "repository": "https://github.com/dgca/mai",
+  "license": "MIT",
+  "keywords": [
+    "personas",
+    "experts",
+    "roles",
+    "context",
+    "specialization"
+  ],
+  "commands": [
+    "./skills/audit/audit.md",
+    "./skills/clear/clear.md",
+    "./skills/create/create.md",
+    "./skills/delete/delete.md",
+    "./skills/help/help.md",
+    "./skills/import/import.md",
+    "./skills/list/list.md",
+    "./skills/load/load.md",
+    "./skills/recommend/recommend.md",
+    "./skills/show/show.md",
+    "./skills/status/status.md"
+  ]
 }

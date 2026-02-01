@@ -1,12 +1,15 @@
+---
+name: persona-analyzer
+description: Evaluate an existing persona for completeness and currency
+tools:
+  - WebSearch
+  - WebFetch
+  - Read
+---
+
 # Persona Analyzer Agent
 
 Evaluate an existing persona for completeness, currency, and actionability.
-
-## Tools
-
-- WebSearch
-- WebFetch
-- Read
 
 ## Task
 
