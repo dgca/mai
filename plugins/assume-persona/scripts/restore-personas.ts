@@ -75,56 +75,6 @@ function findPersonaFile(archetype: string, preferredSource?: string): PersonaFi
   return null;
 }
 
-function extractCondensedSummary(content: string): string {
-  // Remove YAML frontmatter
-  const frontmatterMatch = content.match(/^---\n[\s\S]*?\n---\n+/);
-  const body = frontmatterMatch ? content.slice(frontmatterMatch[0].length) : content;
-
-  // Extract role (first paragraph after the title)
-  const lines = body.split('\n');
-  let role = '';
-  let inRole = false;
-
-  for (const line of lines) {
-    if (line.startsWith('# ')) {
-      inRole = true;
-      continue;
-    }
-    if (inRole && line.trim() && !line.startsWith('#')) {
-      role = line.trim().split('.')[0] + '.';
-      break;
-    }
-  }
-
-  // Extract key sections with first 3 bullet points each
-  const sections: string[] = [];
-
-  // Split by section headers
-  const sectionParts = body.split(/^## /m).slice(1); // Skip content before first ##
-
-  for (const part of sectionParts) {
-    const newlineIdx = part.indexOf('\n');
-    if (newlineIdx === -1) continue;
-
-    const heading = part.slice(0, newlineIdx).trim();
-    const sectionContent = part.slice(newlineIdx + 1);
-
-    // Get first 3 bullet points
-    const bullets = sectionContent
-      .split('\n')
-      .filter(line => line.trim().startsWith('-') || line.trim().startsWith('*'))
-      .slice(0, 3)
-      .map(line => line.trim())
-      .join('\n');
-
-    if (bullets) {
-      sections.push(`**${heading}**:\n${bullets}`);
-    }
-  }
-
-  return [role, ...sections].filter(Boolean).join('\n\n');
-}
-
 function main(): void {
   // Read state (local takes precedence)
   const state = readJsonFile<State>(LOCAL_STATE) ?? readJsonFile<State>(USER_STATE);
@@ -208,7 +158,7 @@ function main(): void {
 
   // Build persona output blocks
   const outputs = loadedPersonas.map(persona => {
-    const summary = extractCondensedSummary(persona.content);
+    const summary = persona.content;
     return `<active-persona archetype="${persona.archetype}" source="${persona.source}">
 ${summary}
 </active-persona>`;

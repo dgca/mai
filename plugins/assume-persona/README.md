@@ -33,8 +33,22 @@ Load subject matter expert personas to get specialized assistance. Create custom
 ## Features
 
 - **Multiple personas**: Load several at once with `/assume-persona:load persona1 persona2`
-- **Auto-restore**: Active personas are restored on new sessions
+- **Auto-restore**: Active personas persist across sessions; project config auto-loads for all contributors
 - **Quality auditing**: Check persona freshness and completeness
+
+## Project Config
+
+Auto-load personas for all contributors by creating:
+
+`<project>/.claude/plugin-data/assume-persona/config.json`
+
+```json
+{
+  "autoLoad": ["claude-plugin-dev", "typescript-expert"]
+}
+```
+
+Commit this file to share persona settings with your team.
 
 ## Storage
 
