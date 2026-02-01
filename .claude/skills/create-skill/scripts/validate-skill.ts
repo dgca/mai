@@ -1,12 +1,12 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env -S node --experimental-strip-types
 /**
  * Skill Validator - Validates skill structure and frontmatter
  *
  * Usage:
- *   npx tsx validate-skill.ts <path/to/skill-folder>
+ *   node --experimental-strip-types validate-skill.ts <path/to/skill-folder>
  *
  * Example:
- *   npx tsx validate-skill.ts skills/my-skill
+ *   node --experimental-strip-types validate-skill.ts skills/my-skill
  */
 
 import * as fs from "fs";
@@ -157,7 +157,7 @@ if (isMain) {
   const args = process.argv.slice(2);
 
   if (args.length !== 1) {
-    console.log("Usage: npx tsx validate-skill.ts <skill-directory>");
+    console.log("Usage: node --experimental-strip-types validate-skill.ts <skill-directory>");
     process.exit(1);
   }
 

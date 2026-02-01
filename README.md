@@ -32,4 +32,4 @@ See [plugins/assume-persona](./plugins/assume-persona) for usage.
 
 A guide for building skills that extend Claude's capabilities. Covers skill structure, YAML frontmatter, bundled resources (scripts, references, assets), and best practices for keeping instructions concise.
 
-See [skills/create-skill](./skills/create-skill).
+See [.claude/skills/create-skill](./.claude/skills/create-skill).

@@ -1,13 +1,13 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env -S node --experimental-strip-types
 /**
  * Skill Initializer - Creates a new skill from template
  *
  * Usage:
- *   npx tsx init-skill.ts <skill-name> --path <path>
+ *   node --experimental-strip-types init-skill.ts <skill-name> --path <path>
  *
  * Examples:
- *   npx tsx init-skill.ts my-new-skill --path skills/public
- *   npx tsx init-skill.ts my-api-helper --path ./skills
+ *   node --experimental-strip-types init-skill.ts my-new-skill --path skills/public
+ *   node --experimental-strip-types init-skill.ts my-api-helper --path ./skills
  */
 
 import * as fs from "fs";
@@ -62,7 +62,7 @@ Documentation loaded into context as needed.
 Files used in output (templates, images, fonts).
 `;
 
-const EXAMPLE_SCRIPT = `#!/usr/bin/env npx tsx
+const EXAMPLE_SCRIPT = `#!/usr/bin/env -S node --experimental-strip-types
 /**
  * Example helper script for {{SKILL_NAME}}
  *
@@ -165,14 +165,14 @@ function main() {
   const args = process.argv.slice(2);
 
   if (args.length < 3 || args[1] !== "--path") {
-    console.log("Usage: npx tsx init-skill.ts <skill-name> --path <path>");
+    console.log("Usage: node --experimental-strip-types init-skill.ts <skill-name> --path <path>");
     console.log("\nSkill name requirements:");
     console.log("  - Hyphen-case (e.g., 'data-analyzer')");
     console.log("  - Lowercase letters, digits, and hyphens only");
     console.log("  - Max 64 characters");
     console.log("\nExamples:");
-    console.log("  npx tsx init-skill.ts my-new-skill --path skills/public");
-    console.log("  npx tsx init-skill.ts my-api-helper --path ./skills");
+    console.log("  node --experimental-strip-types init-skill.ts my-new-skill --path skills/public");
+    console.log("  node --experimental-strip-types init-skill.ts my-api-helper --path ./skills");
     process.exit(1);
   }
 

@@ -78,8 +78,7 @@ See `references/workflows.md` for sequential and conditional workflow patterns.
 3. **Plan reusable contents** - What scripts, references, assets are needed?
 4. **Initialize the skill** - Run init-skill.ts
 5. **Edit the skill** - Implement resources, write SKILL.md
-6. **Package the skill** - Run package-skill.ts
-7. **Iterate** - Refine based on real usage
+6. **Iterate** - Refine based on real usage
 
 ### Step 0: Discover Intent
 
@@ -118,7 +117,7 @@ Examples:
 Run the init script to create a template skill directory:
 
 ```bash
-npx tsx scripts/init-skill.ts <skill-name> --path <output-directory>
+node --experimental-strip-types scripts/init-skill.ts <skill-name> --path <output-directory>
 ```
 
 The script creates:
@@ -148,17 +147,7 @@ Write instructions for using the skill and its bundled resources. Use imperative
 
 Run any added scripts to ensure they work correctly. Test at least a representative sample.
 
-### Step 5: Package the Skill
-
-Package into a distributable .skill file:
-
-```bash
-npx tsx scripts/package-skill.ts <path/to/skill-folder> [output-directory]
-```
-
-The script validates the skill first, then creates a .skill zip file.
-
-### Step 6: Iterate
+### Step 5: Iterate
 
 After testing with real tasks:
 1. Notice struggles or inefficiencies
