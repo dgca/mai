@@ -38,8 +38,7 @@
  *   "skillMd": {
  *     "found": true,
  *     "description": "TypeScript fullstack persona. Invoke when...",
- *     "descriptionLength": 120,
- *     "hasKeywords": true
+ *     "descriptionLength": 120
  *   },
  *   "suggestions": [
  *     "Add ## Mental Models section",
@@ -79,7 +78,6 @@ interface SkillMdInfo {
   found: boolean;
   description?: string;
   descriptionLength?: number;
-  hasKeywords?: boolean;
 }
 
 interface AuditResult {
@@ -213,19 +211,39 @@ function findSkillMd(personaPath: string): SkillMdInfo {
     }
 
     const yaml = frontmatterMatch[1];
-    const descMatch = yaml.match(/^description:\s*(.+)$/m);
-    const description = descMatch ? descMatch[1].trim() : undefined;
 
-    // Check if description mentions specific keywords/technologies
-    const hasKeywords = description
-      ? /\b(typescript|react|node|api|database|security|testing|docker|kubernetes|aws|gcp|azure|python|rust|go|java|c\+\+|frontend|backend|fullstack|devops|data|ml|ai)\b/i.test(description)
-      : false;
+    // Handle both inline and multiline YAML strings
+    let description: string | undefined;
+    const descMatch = yaml.match(/^description:\s*(.*)$/m);
+
+    if (descMatch) {
+      const firstLine = descMatch[1].trim();
+
+      if (firstLine === '|' || firstLine === '>') {
+        // Multiline block scalar - capture indented lines that follow
+        const afterDesc = yaml.substring(yaml.indexOf(descMatch[0]) + descMatch[0].length);
+        const indentedLines: string[] = [];
+
+        for (const line of afterDesc.split('\n')) {
+          if (line.match(/^\s{2,}\S/)) {
+            indentedLines.push(line.trim());
+          } else if (line.trim() === '') {
+            continue;
+          } else {
+            break;
+          }
+        }
+
+        description = indentedLines.join(firstLine === '|' ? '\n' : ' ');
+      } else if (firstLine) {
+        description = firstLine;
+      }
+    }
 
     return {
       found: true,
       description,
       descriptionLength: description?.length,
-      hasKeywords,
     };
   } catch {
     return { found: false };
@@ -388,9 +406,6 @@ function audit(content: string, filePath: string, checkAge: boolean, skillMdInfo
   } else {
     if (skillMdInfo.descriptionLength && skillMdInfo.descriptionLength < 50) {
       suggestions.push('SKILL.md description is very short - add more keywords for better matching');
-    }
-    if (!skillMdInfo.hasKeywords) {
-      suggestions.push('SKILL.md description lacks specific technology/topic keywords');
     }
   }
 

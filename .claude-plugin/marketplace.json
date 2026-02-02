@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "mai",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Collection of Claude Code plugins by @dgca",
   "owner": {
     "name": "Dan Cortes"
