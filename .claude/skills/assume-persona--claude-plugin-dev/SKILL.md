@@ -7,4 +7,4 @@ description: |
 user-invocable: false
 ---
 
-!`node --experimental-strip-types --no-warnings "$HOME/.claude/plugin-data/assume-persona/scripts/load-persona.ts" "${CLAUDE_SESSION_ID}" "claude-plugin-dev" "$HOME/.claude/skills/assume-persona--claude-plugin-dev/persona.md"`
+!`node --experimental-strip-types --no-warnings "$HOME/.claude/plugin-data/assume-persona/scripts/load-persona.ts" "${CLAUDE_SESSION_ID}" "claude-plugin-dev"`

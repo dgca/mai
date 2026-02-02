@@ -59,79 +59,80 @@ Each persona skill contains:
    </additional-context>
    ```
 
-5. **Create the SKILL.md file** (lightweight loader):
+5. **Generate a description** for SKILL.md that captures when Claude should auto-invoke this persona:
+   - Include specific keywords, technologies, tools, and scenarios
+   - Keep it concise but comprehensive for matching
+   - Example: "TypeScript fullstack persona. Invoke when discussing: React, Next.js, Node.js, TypeScript, API design, frontend architecture, server-side rendering."
 
-   Generate a good description that captures when Claude should auto-invoke this persona. Include:
-   - Key topics and domains
-   - Technologies and tools
-   - Problem types and scenarios
+6. **Compose the persona.md content** from research findings:
 
-   ```yaml
+   The content must follow this exact structure:
+
+   ```markdown
    ---
-   name: assume-persona--<archetype>
-   description: |
-     <Archetype> persona. Invoke when discussing: <topic1>, <topic2>,
-     <technology1>, <technology2>, <scenario1>, <scenario2>.
-   user-invocable: false
+   archetype: <archetype>
+   created: <YYYY-MM-DD>
+   category: <category>
+   keywords:
+     - <keyword1>
+     - <keyword2>
    ---
 
-   !`node --experimental-strip-types --no-warnings "$HOME/.claude/plugin-data/assume-persona/scripts/load-persona.ts" "${CLAUDE_SESSION_ID}" "<archetype>" "<persona-path>/persona.md"`
+   # <Archetype Title>
+
+   You are an expert <role description>...
+
+   ## Core Expertise
+   <distilled from research>
+
+   ## Mental Models
+   <distilled from research>
+
+   ## Best Practices
+   <distilled from research>
+
+   ## Pitfalls to Avoid
+   <distilled from research>
+
+   ## Tools & Technologies
+   <distilled from research>
    ```
 
-   Where `<persona-path>` depends on the storage location chosen:
-   - Local: `$PWD/.claude/skills/assume-persona--<archetype>`
-   - User: `$HOME/.claude/skills/assume-persona--<archetype>`
-
-6. **Distill research into persona.md** (200-400 lines max):
-
-```yaml
----
-archetype: <archetype>
-created: <YYYY-MM-DD>
-category: <category> # optional, e.g., web-development, data-engineering, systems
-keywords: # optional, helps /assume-persona:recommend find this persona
-  - <keyword1>
-  - <keyword2>
----
-
-# <Archetype Title>
-
-You are an expert <role description>...
-
-## Core Expertise
-<distilled from research>
-
-## Mental Models
-<distilled from research>
-
-## Best Practices
-<distilled from research>
-
-## Pitfalls to Avoid
-<distilled from research>
-
-## Tools & Technologies
-<distilled from research>
-```
+   Target length: 200-400 lines
 
 7. **Ask storage preference**:
-```
-Where should I save this persona?
+   ```
+   Where should I save this persona?
 
-1. **Local** (.claude/skills/assume-persona--<archetype>/) - Specific to this project
-2. **User** (~/.claude/skills/assume-persona--<archetype>/) - Available globally
-3. **Session only** - Don't save, just apply now
-```
+   1. **Local** (.claude/skills/assume-persona--<archetype>/) - Specific to this project
+   2. **User** (~/.claude/skills/assume-persona--<archetype>/) - Available globally
+   3. **Session only** - Don't save, just apply now
+   ```
 
-8. **Save** (unless session-only):
-   - Create the skill directory: `assume-persona--<archetype>/`
-   - Save `SKILL.md` (with correct path for the chosen location)
-   - Save `persona.md`
+8. **Save using create-persona.ts** (unless session-only):
+
+   Pipe the persona.md content to the script:
+
+   ```bash
+   echo '<persona.md content>' | node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/create-persona.ts" \
+     --archetype "<archetype>" \
+     --scope "<local|user>" \
+     --description "<the description from step 5>"
+   ```
+
+   The script:
+   - Validates the persona content (frontmatter, required sections)
+   - Generates SKILL.md with the correct loader command
+   - Writes both files atomically
+   - Returns JSON: `{ "success": true, "path": "..." }` or `{ "success": false, "error": "..." }`
+
+   If validation fails, show the error and offer to fix the issues.
 
 9. **Apply the persona** by outputting its full content, then confirm:
-```
-Persona '<archetype>' created and activated.
+   ```
+   Persona '<archetype>' created and activated.
 
-The persona will auto-invoke when Claude detects relevant topics.
-Load manually: /assume-persona:load <archetype>
-```
+   The persona will auto-invoke when Claude detects relevant topics.
+   Load manually: /assume-persona:load <archetype>
+   ```

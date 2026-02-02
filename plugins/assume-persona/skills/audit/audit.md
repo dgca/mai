@@ -26,8 +26,14 @@ Each persona skill contains:
 
 1. **Parse `$ARGUMENTS`**:
    - If archetype provided, audit that one
-   - If empty, list available personas and let user pick:
+   - If empty, run list-personas.ts and let user pick:
 
+     ```bash
+     node --experimental-strip-types --no-warnings \
+       "${CLAUDE_PLUGIN_ROOT}/scripts/list-personas.ts" --scope all --format json
+     ```
+
+     Then show:
      ```
      Available personas:
      - security-expert (user)
@@ -48,55 +54,55 @@ Each persona skill contains:
    ```
    Stop here.
 
-4. **Read both files**:
-   - `SKILL.md` for description quality check
-   - `persona.md` for content quality check
+4. **Run audit-persona.ts** for structural analysis:
 
-5. **Run structural checks on persona.md**:
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/audit-persona.ts" \
+     "<path-to-persona.md>" --check-age
+   ```
 
-   ### Age Check
-   - Parse `created` date from frontmatter
-   - Calculate age in months
-   - Status:
-     - ✓ Fresh: < 3 months old
-     - ⚠ Aging: 3-6 months old
-     - ✗ Stale: > 6 months old
+   The script returns JSON:
+   ```json
+   {
+     "archetype": "typescript-fullstack",
+     "location": "local",
+     "age": {
+       "created": "2024-01-15",
+       "months": 3,
+       "status": "fresh"
+     },
+     "frontmatter": {
+       "archetype": { "present": true, "valid": true },
+       "created": { "present": true, "valid": true },
+       "category": { "present": true },
+       "keywords": { "present": false }
+     },
+     "sections": {
+       "roleDescription": { "present": true, "lineCount": 5 },
+       "coreExpertise": { "present": true, "lineCount": 45 },
+       "mentalModels": { "present": false, "lineCount": 0 },
+       ...
+     },
+     "quality": {
+       "totalLines": 245,
+       "lengthStatus": "good",
+       "completeness": 0.83
+     },
+     "suggestions": [
+       "Add ## Mental Models section",
+       "Consider updating - persona is 8 months old"
+     ]
+   }
+   ```
 
-   ### Required Sections Check
-
-   Look for these headings (case-insensitive):
-   - Role description (paragraph starting with "You are")
-   - `## Core Expertise`
-   - `## Mental Models`
-   - `## Best Practices`
-   - `## Pitfalls` (or "Pitfalls to Avoid")
-   - `## Tools` (or "Tools & Technologies")
-
-   ### Length Check
-   - Count total lines
-   - Status:
-     - ✗ Too short: < 100 lines
-     - ✓ Good: 100-500 lines
-     - ⚠ Too long: > 500 lines
-
-   ### Frontmatter Check
-   - Required fields: `archetype`, `created`
-   - Optional fields: `category`, `keywords`
-   - Note which are present/missing
-
-6. **Run description quality check on SKILL.md**:
-
-   ### Description Quality
+5. **Read SKILL.md** and check description quality:
    - Is description present and non-empty?
-   - Does it include specific keywords/topics? (good for auto-invocation matching)
+   - Does it include specific keywords/topics?
    - Is it under 200 characters? (overly brief)
    - Does it mention concrete technologies, tools, or scenarios?
-   - Status:
-     - ✓ Good: Specific keywords, reasonable length
-     - ⚠ Vague: Generic description that won't match well
-     - ✗ Missing: No description
 
-7. **Spawn agent** to analyze content quality:
+6. **Spawn agent** to analyze content quality:
    ```
    Analyze this persona for completeness, currency, and actionability.
    Return specific improvement recommendations.
@@ -106,7 +112,7 @@ Each persona skill contains:
    </persona>
    ```
 
-8. **Present combined output**:
+7. **Present combined output**:
 
    ```
    ## Persona Audit: <archetype>
@@ -139,15 +145,15 @@ Each persona skill contains:
    3. None - keep as is
    ```
 
-9. **If user wants to choose specific ones**:
+8. **If user wants to choose specific ones**:
    - Let them specify (e.g., "1, 3, 5" or "all except 2")
 
-10. **Apply approved changes**:
+9. **Apply approved changes**:
     - Edit persona.md with selected content improvements
     - Edit SKILL.md description if improvements were suggested
     - Update `created` date in persona.md to today
 
-11. **Confirm**:
+10. **Confirm**:
     ```
     Persona '<archetype>' updated.
     ```

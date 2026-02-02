@@ -23,11 +23,14 @@ State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
 
 ## Instructions
 
-1. **List all available personas** by globbing both skill directories:
-   - Glob `assume-persona--*` in `<cwd>/.claude/skills/`
-   - Glob `assume-persona--*` in `$HOME/.claude/skills/`
-   - Extract archetype from directory name (strip `assume-persona--` prefix)
-   - Track which scope (local/user) each persona belongs to
+1. **List all available personas** using list-personas.ts:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/list-personas.ts" --scope all --format json
+   ```
+
+   Parse the JSON response to get archetype names and scopes.
 
 2. **If no personas found**:
    ```
@@ -49,7 +52,7 @@ State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
    Wait for user response.
 
 4. **For each archetype to delete**:
-   - Find the persona skill directory (check local first, then user)
+   - Find the persona in the list to determine its scope
    - If not found:
      ```
      Persona '<archetype>' not found.
@@ -70,15 +73,20 @@ State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
    ```
    Wait for user confirmation. If not confirmed, stop here.
 
-6. **Delete each confirmed persona skill directory**
-   - Remove the entire `assume-persona--<archetype>/` directory (SKILL.md + persona.md)
+6. **Delete each confirmed persona** using delete-persona.ts:
 
-7. **If deleted persona was in session state**, update state:
-   - Read `$HOME/.claude/plugin-data/assume-persona/state.json`
-   - Remove the archetype from current session's `loadedPersonas` array
-   - Write updated state (or delete session entry if empty)
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/delete-persona.ts" \
+     --archetype "<archetype>" --scope "<local|user>"
+   ```
 
-8. **Confirm deletion**:
+   The script:
+   - Removes the entire skill directory (SKILL.md + persona.md)
+   - Updates state.json to remove from loadedPersonas
+   - Returns JSON: `{ "success": true, "deleted": "...", "stateUpdated": true/false }`
+
+7. **Confirm deletion**:
    ```
    Deleted:
    - react-expert (local)

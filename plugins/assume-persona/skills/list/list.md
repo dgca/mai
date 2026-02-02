@@ -12,74 +12,75 @@ List all available personas from all storage locations with quality indicators.
 
 `$ARGUMENTS` = optional category to filter by (e.g., "web-development")
 
-## Storage Locations
-
-Personas are stored as skills in (do NOT search recursively from home):
-
-1. **Local/project**: `<cwd>/.claude/skills/assume-persona--*/`
-2. **User**: `$HOME/.claude/skills/assume-persona--*/`
-
-State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
-Config file: `<cwd>/.claude/plugin-data/assume-persona/config.json`
-
 ## Instructions
 
-1. **List skill directories in each location**:
-   - Glob for `assume-persona--*` directories in `<cwd>/.claude/skills/`
-   - Glob for `assume-persona--*` directories in `$HOME/.claude/skills/`
-   - Extract archetype from directory name (strip `assume-persona--` prefix)
+1. **Run list-personas.ts** to discover all personas:
 
-2. **For each persona skill found**, read `persona.md` and parse YAML frontmatter:
-   - `archetype`: The persona identifier (required)
-   - `created`: Creation date (required)
-   - `category`: Category grouping (optional, default "uncategorized")
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/list-personas.ts" \
+     --scope all --format json
+   ```
 
-3. **Also extract from content**:
-   - **Description**: First line of the Role section (the line starting with "You are...")
-   - **Line count**: For quality indicator
+   The script returns JSON:
+   ```json
+   {
+     "personas": [
+       {
+         "archetype": "typescript-fullstack",
+         "description": "Expert TypeScript fullstack developer...",
+         "category": "web-development",
+         "scope": "local",
+         "path": ".claude/skills/assume-persona--typescript-fullstack/",
+         "created": "2024-01-15",
+         "lineCount": 245,
+         "loaded": true,
+         "autoLoad": false
+       }
+     ],
+     "summary": {
+       "total": 2,
+       "loaded": 1,
+       "autoLoad": 1
+     }
+   }
+   ```
 
-4. **Determine which personas are loaded** by checking:
-   - **State file**: Current session's `loadedPersonas` array (use `${CLAUDE_SESSION_ID}`)
-   - **Config file**: `autoLoad` array (project-config personas)
-   - A persona is "loaded" if it appears in the current session's state
-   - A persona is "auto-load" if it appears in config's autoLoad array
+2. **If `$ARGUMENTS` provided**, filter results to only show personas matching that category
 
-5. **Calculate quality indicators** for each:
+3. **Calculate quality indicators** for each persona:
    - **Age**: "fresh" (<3 months), "ok" (3-6 months), "stale" (>6 months)
-   - **Completeness**: Check for required sections (Role, Core Expertise, Mental Models, Best Practices, Pitfalls, Tools)
    - **Length**: "short" (<100 lines), "good" (100-500), "long" (>500)
 
-6. **If `$ARGUMENTS` provided**, filter to only show personas matching that category
-
-7. **Display results** with one persona per block, blank line between each:
+4. **Display results** with one persona per block, blank line between each:
    - Show `(loaded)` for personas in current session's state
    - Show `(auto-load)` for personas in config's autoLoad array
    - If in both, show `(loaded, auto-load)`
 
-```
-Available Personas:
+   ```
+   Available Personas:
 
-Name: typescript-fullstack (auto-load)
-Description: Expert TypeScript fullstack developer...
-Category: web-development
-Location: local
-Quality: ✓ fresh, complete
+   Name: typescript-fullstack (auto-load)
+   Description: Expert TypeScript fullstack developer...
+   Category: web-development
+   Location: local
+   Quality: ✓ fresh, complete
 
-Name: django-backend (loaded)
-Description: Expert Django backend developer...
-Category: uncategorized
-Location: user
-Quality: ⚠ stale (8mo)
+   Name: django-backend (loaded)
+   Description: Expert Django backend developer...
+   Category: uncategorized
+   Location: user
+   Quality: ⚠ stale (8mo)
 
-Total: 2 personas (1 loaded, 1 auto-load)
-```
+   Total: 2 personas (1 loaded, 1 auto-load)
+   ```
 
-8. **If no personas found**:
-```
-No personas found.
+5. **If no personas found**:
+   ```
+   No personas found.
 
-Create one with: /assume-persona:create <archetype>
-```
+   Create one with: /assume-persona:create <archetype>
+   ```
 
 ## Notes
 

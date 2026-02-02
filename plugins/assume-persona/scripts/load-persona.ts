@@ -3,8 +3,9 @@
 /**
  * Session-aware persona loader.
  * Outputs persona content only if not already loaded in this session.
- * This script is installed to ~/.claude/plugin-data/assume-persona/scripts/
- * and invoked by SKILL.md files via dynamic context (!`command`).
+ * Automatically finds persona in local or user scope (local takes precedence).
+ *
+ * Usage: load-persona.ts <sessionId> <archetype>
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
@@ -21,16 +22,36 @@ interface State {
 }
 
 const STATE_FILE = join(homedir(), '.claude/plugin-data/assume-persona/state.json');
+const PERSONA_SKILL_PREFIX = 'assume-persona--';
 
-const [sessionId, archetype, personaFile] = process.argv.slice(2);
+const [sessionId, archetype] = process.argv.slice(2);
 
-if (!sessionId || !archetype || !personaFile) {
-  console.error('Usage: load-persona.ts <sessionId> <archetype> <personaFile>');
+if (!sessionId || !archetype) {
+  console.error('Usage: load-persona.ts <sessionId> <archetype>');
   process.exit(1);
 }
 
-// Expand $HOME in persona file path
-const expandedPersonaFile = personaFile.replace(/^\$HOME/, homedir());
+/**
+ * Find persona.md in local or user scope.
+ * Local (project) takes precedence over user.
+ */
+function findPersonaFile(archetype: string): string | null {
+  const skillDirName = `${PERSONA_SKILL_PREFIX}${archetype}`;
+
+  // Check local/project scope first
+  const localPath = join(process.cwd(), '.claude/skills', skillDirName, 'persona.md');
+  if (existsSync(localPath)) {
+    return localPath;
+  }
+
+  // Fall back to user scope
+  const userPath = join(homedir(), '.claude/skills', skillDirName, 'persona.md');
+  if (existsSync(userPath)) {
+    return userPath;
+  }
+
+  return null;
+}
 
 // Ensure state directory exists
 mkdirSync(dirname(STATE_FILE), { recursive: true });
@@ -52,12 +73,19 @@ if (state[sessionId]?.loadedPersonas?.includes(archetype)) {
   process.exit(0);
 }
 
+// Find persona file
+const personaFile = findPersonaFile(archetype);
+if (!personaFile) {
+  console.error(`Persona '${archetype}' not found in local or user scope`);
+  process.exit(1);
+}
+
 // Read persona content
 let personaContent: string;
 try {
-  personaContent = readFileSync(expandedPersonaFile, 'utf8');
+  personaContent = readFileSync(personaFile, 'utf8');
 } catch (err) {
-  console.error(`Failed to read persona file: ${expandedPersonaFile}`);
+  console.error(`Failed to read persona file: ${personaFile}`);
   process.exit(1);
 }
 

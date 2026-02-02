@@ -34,30 +34,33 @@ Each persona skill contains:
    - If file path: read the file
    - If fetch fails, show error and stop
 
-3. **Validate the persona** with the following checks:
+3. **Validate using validate-persona.ts**:
 
-   ### Required Frontmatter
-   - Must have valid YAML frontmatter (between `---` markers)
-   - Required fields:
-     - `archetype` (string, kebab-case)
-     - `created` (date, YYYY-MM-DD format)
-   - Optional but recommended:
-     - `category` (string)
-     - `keywords` (array of strings)
+   Save the content to a temp file and run validation:
 
-   ### Required Sections
-   Check for these headings (case-insensitive):
-   - Role description (first paragraph after frontmatter, starts with "You are")
-   - `## Core Expertise`
-   - `## Mental Models`
-   - `## Best Practices`
-   - `## Pitfalls` (or "Pitfalls to Avoid")
-   - `## Tools` (or "Tools & Technologies")
+   ```bash
+   echo '<content>' | node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/validate-persona.ts" --stdin
+   ```
 
-   ### Length Check
-   - Minimum: 100 lines
-   - Maximum: 500 lines
-   - Warn if outside range but don't block
+   The script returns JSON:
+   ```json
+   {
+     "valid": true/false,
+     "frontmatter": { "archetype": "...", "created": "...", "category": "..." },
+     "sections": {
+       "roleDescription": true/false,
+       "coreExpertise": true/false,
+       "mentalModels": true/false,
+       "bestPractices": true/false,
+       "pitfalls": true/false,
+       "tools": true/false
+     },
+     "lineCount": 245,
+     "errors": ["Missing ## Core Expertise section"],
+     "warnings": ["Description exceeds recommended length"]
+   }
+   ```
 
 4. **Report validation results**:
 
@@ -108,26 +111,26 @@ Each persona skill contains:
      3. Cancel
      ```
 
-7. **Generate SKILL.md** with good description:
-   - Extract keywords from persona content
+7. **Generate a description** for SKILL.md:
+   - Extract keywords from persona content (frontmatter keywords, section topics, technologies mentioned)
    - Create description that captures when to auto-invoke
+   - Example: "Security expert persona. Invoke when discussing: security, authentication, authorization, OWASP, vulnerabilities, penetration testing."
 
-   ```yaml
-   ---
-   name: assume-persona--<archetype>
-   description: |
-     <Archetype> persona. Invoke when discussing: <keyword1>, <keyword2>,
-     <technology1>, <scenario1>.
-   user-invocable: false
-   ---
+8. **Save using create-persona.ts**:
 
-   !`node --experimental-strip-types --no-warnings "$HOME/.claude/plugin-data/assume-persona/scripts/load-persona.ts" "${CLAUDE_SESSION_ID}" "<archetype>" "<persona-path>/persona.md"`
+   ```bash
+   echo '<persona.md content>' | node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/create-persona.ts" \
+     --archetype "<archetype>" \
+     --scope "<local|user>" \
+     --description "<generated description>"
    ```
 
-8. **Save the persona skill**:
-   - Create the skill directory: `assume-persona--<archetype>/`
-   - Write `SKILL.md` (with correct path for the chosen location)
-   - Write `persona.md` (the imported content)
+   The script validates, generates SKILL.md with correct loader command, and writes both files.
+
+   Handle the JSON response:
+   - On success: `{ "success": true, "path": "..." }`
+   - On error: `{ "success": false, "error": "..." }` - show error and offer to fix
 
 9. **Confirm**:
    ```
