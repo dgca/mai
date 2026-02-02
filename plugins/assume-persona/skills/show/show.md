@@ -14,27 +14,54 @@ Preview a persona's full content without activating it or changing state.
 
 ## Storage Locations
 
-Check these directories directly in order (do NOT search recursively from home):
+Personas are stored as skills in (do NOT search recursively from home):
 
-1. **Local/project**: `<cwd>/.claude/plugin-data/assume-persona/personas/`
-2. **User**: `$HOME/.claude/plugin-data/assume-persona/personas/`
+1. **Local/project**: `<cwd>/.claude/skills/assume-persona--<archetype>/`
+2. **User**: `$HOME/.claude/skills/assume-persona--<archetype>/`
+
+Each persona skill contains:
+- `SKILL.md` - Metadata and loader
+- `persona.md` - Full persona content
 
 ## Instructions
 
 1. **Parse the archetype** from `$ARGUMENTS`
-   - If empty, list available personas and let user pick:
-     ```
-     Available personas:
-     - loud-guy (local)
-     - security-expert (user)
+   - If empty, get list and let user pick using AskUserQuestion:
 
-     Which persona to preview?
+     ```bash
+     node --experimental-strip-types --no-warnings \
+       "${CLAUDE_PLUGIN_ROOT}/scripts/list-personas.ts" --scope all --format json
      ```
-     Wait for user response, then continue.
 
-2. **Check for the persona file directly** (in precedence order):
-   - `<cwd>/.claude/plugin-data/assume-persona/personas/<archetype>.md` (local)
-   - `$HOME/.claude/plugin-data/assume-persona/personas/<archetype>.md` (user)
+     Use `AskUserQuestion` tool with:
+     - question: "Which persona to preview?"
+     - header: "Persona"
+     - options: list of available personas (archetype + scope as description)
+
+     Continue with selected archetype.
+
+2. **Get persona content** using show-persona.ts:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/show-persona.ts" "<archetype>"
+   ```
+
+   The script returns JSON:
+   ```json
+   {
+     "found": true,
+     "scope": "local",
+     "archetype": "typescript-fullstack",
+     "created": "2024-01-15",
+     "category": "web-development",
+     "keywords": ["typescript", "react"],
+     "lineCount": 245,
+     "content": "---\narchetype: typescript-fullstack\n..."
+   }
+   ```
+
+   Or if not found: `{ "found": false }`
 
 3. **If NOT found**:
    ```
@@ -45,27 +72,27 @@ Check these directories directly in order (do NOT search recursively from home):
    ```
    Stop here.
 
-4. **Read and display the persona file**:
+4. **Display the persona** using data from script output:
 
    ```
-   ## Persona Preview: $ARGUMENTS
+   ## Persona Preview: {archetype}
 
-   **Source**: <local|user>
-   **Created**: <date from frontmatter>
-   **Category**: <category if present>
-   **Keywords**: <keywords if present>
-   **Lines**: <line count>
+   **Source**: {scope}
+   **Created**: {created}
+   **Category**: {category or "uncategorized"}
+   **Keywords**: {keywords array or "none"}
+   **Lines**: {lineCount}
 
    ---
 
-   <full persona content including frontmatter>
+   {content}
 
    ---
 
    ### Actions
 
-   - Load this persona: `/assume-persona:load $ARGUMENTS`
-   - Audit this persona: `/assume-persona:audit $ARGUMENTS`
+   - Load this persona: `/assume-persona:load {archetype}`
+   - Audit this persona: `/assume-persona:audit {archetype}`
    ```
 
 ## Notes
@@ -73,4 +100,4 @@ Check these directories directly in order (do NOT search recursively from home):
 - This is a read-only preview - no state changes occur
 - The persona is NOT injected into context
 - Useful for reviewing before deciding to load
-- Shows the raw file including YAML frontmatter
+- Shows the raw persona.md file including YAML frontmatter

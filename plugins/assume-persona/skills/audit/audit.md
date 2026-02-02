@@ -5,7 +5,7 @@ argument-hint: "[archetype]"
 
 # Audit Persona
 
-Audit a persona for structure and content quality, then offer to apply improvements.
+Audit a persona for structure, content quality, and SKILL.md description quality, then offer to apply improvements.
 
 ## Arguments
 
@@ -13,30 +13,41 @@ Audit a persona for structure and content quality, then offer to apply improveme
 
 ## Storage Locations
 
-Check these directories directly (do NOT search recursively from home):
+Personas are stored as skills in (do NOT search recursively from home):
 
-1. **Local/project**: `<cwd>/.claude/plugin-data/assume-persona/personas/`
-2. **User**: `$HOME/.claude/plugin-data/assume-persona/personas/`
+1. **Local/project**: `<cwd>/.claude/skills/assume-persona--<archetype>/`
+2. **User**: `$HOME/.claude/skills/assume-persona--<archetype>/`
+
+Each persona skill contains:
+- `SKILL.md` - Metadata and loader (description quality matters for auto-invocation)
+- `persona.md` - Full persona content
 
 ## Instructions
 
 1. **Parse `$ARGUMENTS`**:
    - If archetype provided, audit that one
-   - If empty, list available personas and let user pick:
+   - If empty, get list and let user pick using AskUserQuestion:
 
-     ```
-     Available personas:
-     - loud-guy (user)
-     - my-persona (local)
-
-     Which one would you like to audit?
+     ```bash
+     node --experimental-strip-types --no-warnings \
+       "${CLAUDE_PLUGIN_ROOT}/scripts/list-personas.ts" --scope all --format json
      ```
 
-2. **Find the persona file** (in precedence order):
-   - `<cwd>/.claude/plugin-data/assume-persona/personas/<archetype>.md` (local)
-   - `$HOME/.claude/plugin-data/assume-persona/personas/<archetype>.md` (user)
+     Use `AskUserQuestion` tool with:
+     - question: "Which persona would you like to audit?"
+     - header: "Persona"
+     - options: list of available personas (archetype + scope as description)
 
-3. **If NOT found**:
+     Continue with selected archetype.
+
+2. **Check if persona exists** using check-exists.ts:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/check-exists.ts" "<archetype>"
+   ```
+
+   If `{ "exists": false }`:
    ```
    Persona '<archetype>' not found.
 
@@ -44,63 +55,92 @@ Check these directories directly (do NOT search recursively from home):
    ```
    Stop here.
 
-4. **Read the persona file**
+3. **Run audit-persona.ts** for structural analysis:
 
-5. **Run structural checks**:
+   Use the path from check-exists.ts result. The script accepts skill directory paths:
 
-   ### Age Check
-   - Parse `created` date from frontmatter
-   - Calculate age in months
-   - Status:
-     - ✓ Fresh: < 3 months old
-     - ⚠ Aging: 3-6 months old
-     - ✗ Stale: > 6 months old
+   ```bash
+   # For local scope
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/audit-persona.ts" \
+     ".claude/skills/assume-persona--<archetype>" --check-age
 
-   ### Required Sections Check
+   # For user scope
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/audit-persona.ts" \
+     "$HOME/.claude/skills/assume-persona--<archetype>" --check-age
+   ```
 
-   Look for these headings (case-insensitive):
-   - Role description (paragraph starting with "You are")
-   - `## Core Expertise`
-   - `## Mental Models`
-   - `## Best Practices`
-   - `## Pitfalls` (or "Pitfalls to Avoid")
-   - `## Tools` (or "Tools & Technologies")
+   The script returns JSON including SKILL.md info:
+   ```json
+   {
+     "archetype": "typescript-fullstack",
+     "location": "local",
+     "age": {
+       "created": "2024-01-15",
+       "months": 3,
+       "status": "fresh"
+     },
+     "frontmatter": {
+       "archetype": { "present": true, "valid": true },
+       "created": { "present": true, "valid": true },
+       "category": { "present": true },
+       "keywords": { "present": false }
+     },
+     "sections": {
+       "roleDescription": { "present": true, "lineCount": 5 },
+       "coreExpertise": { "present": true, "lineCount": 45 },
+       "mentalModels": { "present": false, "lineCount": 0 },
+       ...
+     },
+     "quality": {
+       "totalLines": 245,
+       "lengthStatus": "good",
+       "completeness": 0.83
+     },
+     "skillMd": {
+       "found": true,
+       "description": "TypeScript fullstack persona. Invoke when...",
+       "descriptionLength": 120,
+       "hasKeywords": true
+     },
+     "suggestions": [
+       "Add ## Mental Models section",
+       "Consider updating - persona is 8 months old"
+     ]
+   }
+   ```
 
-   ### Length Check
-   - Count total lines
-   - Status:
-     - ✗ Too short: < 100 lines
-     - ✓ Good: 100-500 lines
-     - ⚠ Too long: > 500 lines
-
-   ### Frontmatter Check
-   - Required fields: `archetype`, `created`
-   - Optional fields: `category`, `keywords`
-   - Note which are present/missing
-
-6. **Spawn agent** to analyze content quality:
+4. **Spawn agent** to analyze content quality:
    ```
    Analyze this persona for completeness, currency, and actionability.
    Return specific improvement recommendations.
 
    <persona>
-   {persona content}
+   {persona.md content}
    </persona>
    ```
 
-7. **Present combined output**:
+5. **Present combined output** (use data from audit-persona.ts):
 
    ```
    ## Persona Audit: <archetype>
    **Location**: local/user
 
-   ### Structure
+   ### Structure (persona.md)
    | Check | Status | Details |
    |-------|--------|---------|
    | Age | ✓ Fresh | Created 2 weeks ago |
    | Sections | ⚠ Partial | Missing: Mental Models |
    | Length | ✓ Good | 245 lines |
    | Frontmatter | ✓ Complete | All fields present |
+
+   ### Auto-Invocation (SKILL.md)
+   | Check | Status | Details |
+   |-------|--------|---------|
+   | Found | ✓/✗ | {skillMd.found} |
+   | Description | ✓ Good / ⚠ Short / ✗ Missing | {skillMd.descriptionLength} chars |
+   | Keywords | ✓/⚠ | {skillMd.hasKeywords ? "Has tech keywords" : "No specific keywords"} |
 
    ### Content Analysis
    <agent assessment>
@@ -116,14 +156,25 @@ Check these directories directly (do NOT search recursively from home):
    3. None - keep as is
    ```
 
-8. **If user wants to choose specific ones**:
+6. **If user wants to choose specific ones**:
    - Let them specify (e.g., "1, 3, 5" or "all except 2")
 
-9. **Apply approved changes**:
-   - Edit the persona file with selected improvements
-   - Update `created` date to today
+7. **Apply approved changes** using update-persona.ts:
 
-10. **Confirm**:
+   Get the persona content (use show-persona.ts), apply improvements, then save:
+
+   ```bash
+   echo '<improved persona.md content>' | node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/update-persona.ts" \
+     --archetype "<archetype>" \
+     --scope "<local|user>" \
+     --update-date \
+     --description "<new description if SKILL.md needs updating>"
+   ```
+
+   The script updates persona.md and optionally SKILL.md description.
+
+8. **Confirm**:
     ```
     Persona '<archetype>' updated.
     ```
@@ -133,3 +184,4 @@ Check these directories directly (do NOT search recursively from home):
 - If no improvements are needed, skip the "Apply improvements?" prompt
 - User must explicitly approve changes before any edits are made
 - The `created` date updates to reflect the edit
+- Description quality is important for auto-invocation matching

@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Create Persona
 
-Research and create a new subject matter expert persona.
+Research and create a new subject matter expert persona as an auto-invocable skill.
 
 ## Arguments
 
@@ -14,10 +14,14 @@ Research and create a new subject matter expert persona.
 
 ## Storage Locations
 
-Personas can be saved to (do NOT search recursively from home):
+Personas are stored as skills in (do NOT search recursively from home):
 
-1. **Local/project**: `<cwd>/.claude/plugin-data/assume-persona/personas/`
-2. **User** (global): `$HOME/.claude/plugin-data/assume-persona/personas/`
+1. **Local/project**: `<cwd>/.claude/skills/assume-persona--<archetype>/`
+2. **User** (global): `$HOME/.claude/skills/assume-persona--<archetype>/`
+
+Each persona skill contains:
+- `SKILL.md` - Lightweight loader with description for auto-invocation
+- `persona.md` - Full persona content
 
 ## Instructions
 
@@ -25,11 +29,19 @@ Personas can be saved to (do NOT search recursively from home):
    - Normalize to kebab-case (e.g., "Rust Systems Programmer" → "rust-systems-programmer")
    - If empty, show error: "Usage: /assume-persona:create <archetype>"
 
-2. **Check if persona already exists** by checking each path directly:
-   - `<cwd>/.claude/plugin-data/assume-persona/personas/<archetype>.md` (local)
-   - `$HOME/.claude/plugin-data/assume-persona/personas/<archetype>.md` (user)
-   - If found: "Persona '$ARGUMENTS' already exists. Use `/assume-persona:audit $ARGUMENTS` to review or `/assume-persona:load $ARGUMENTS` to activate."
-   - Stop here if exists
+2. **Check if persona already exists** using check-exists.ts:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/check-exists.ts" "<archetype>"
+   ```
+
+   The script returns JSON:
+   - `{ "exists": true, "scope": "local", "path": "..." }` - persona found
+   - `{ "exists": false }` - persona not found
+
+   If exists: "Persona '$ARGUMENTS' already exists. Use `/assume-persona:audit $ARGUMENTS` to review or `/assume-persona:load $ARGUMENTS` to activate."
+   Stop here if exists
 
 3. **Ask for additional context**:
    ```
@@ -55,52 +67,89 @@ Personas can be saved to (do NOT search recursively from home):
    </additional-context>
    ```
 
-5. **Distill research into persona** (200-400 lines max):
+5. **Generate a description** for SKILL.md that captures when Claude should auto-invoke this persona:
+   - Include specific keywords, technologies, tools, and scenarios
+   - Keep it concise but comprehensive for matching
+   - Example: "TypeScript fullstack persona. Invoke when discussing: React, Next.js, Node.js, TypeScript, API design, frontend architecture, server-side rendering."
 
-```yaml
----
-archetype: <archetype>
-created: <YYYY-MM-DD>
-category: <category> # optional, e.g., web-development, data-engineering, systems
-keywords: # optional, helps /assume-persona:recommend find this persona
-  - <keyword1>
-  - <keyword2>
----
+6. **Compose the persona.md content** from research findings:
 
-# <Archetype Title>
+   The content must follow this exact structure:
 
-You are an expert <role description>...
+   ```markdown
+   ---
+   archetype: <archetype>
+   created: <YYYY-MM-DD>
+   category: <category>
+   keywords:
+     - <keyword1>
+     - <keyword2>
+   ---
 
-## Core Expertise
-<distilled from research>
+   # <Archetype Title>
 
-## Mental Models
-<distilled from research>
+   You are an expert <role description>...
 
-## Best Practices
-<distilled from research>
+   ## Core Expertise
+   <distilled from research>
 
-## Pitfalls to Avoid
-<distilled from research>
+   ## Mental Models
+   <distilled from research>
 
-## Tools & Technologies
-<distilled from research>
-```
+   ## Best Practices
+   <distilled from research>
 
-6. **Ask storage preference**:
-```
-Where should I save this persona?
+   ## Pitfalls to Avoid
+   <distilled from research>
 
-1. **Local** (.claude/plugin-data/assume-persona/personas/) - Specific to this project
-2. **User** (~/.claude/plugin-data/assume-persona/personas/) - Available globally
-3. **Session only** - Don't save, just apply now
-```
+   ## Tools & Technologies
+   <distilled from research>
+   ```
 
-7. **Save** (unless session-only):
-   - Create the chosen directory if needed
-   - Save as `<archetype>.md`
+   Target length: 200-400 lines
 
-8. **Apply the persona** by outputting its full content, then confirm:
-```
-Persona '<archetype>' created and activated.
-```
+7. **Ask storage preference**:
+   ```
+   Where should I save this persona?
+
+   1. **Local** (.claude/skills/assume-persona--<archetype>/) - Specific to this project
+   2. **User** (~/.claude/skills/assume-persona--<archetype>/) - Available globally
+   3. **Session only** - Don't save, just apply now
+   ```
+
+8. **Save using create-persona.ts** (unless session-only):
+
+   Pipe the persona.md content to the script:
+
+   ```bash
+   echo '<persona.md content>' | node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/create-persona.ts" \
+     --archetype "<archetype>" \
+     --scope "<local|user>" \
+     --description "<the description from step 5>"
+   ```
+
+   The script:
+   - Validates the persona content (frontmatter, required sections)
+   - Generates SKILL.md with the correct loader command
+   - Writes both files atomically
+   - Returns JSON: `{ "success": true, "path": "..." }` or `{ "success": false, "error": "..." }`
+
+   If validation fails, show the error and offer to fix the issues.
+
+9. **Load the persona** using load-persona.ts:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/load-persona.ts" \
+     "${CLAUDE_SESSION_ID}" "<archetype>"
+   ```
+
+   The script outputs the persona content (display it to inject into context) and updates state.json.
+
+   Then confirm:
+   ```
+   Persona '<archetype>' created and activated.
+
+   The persona will auto-invoke when Claude detects relevant topics.
+   ```

@@ -1,63 +1,70 @@
 ---
-description: Show currently active personas and their status
+description: Show currently loaded personas and their status
 argument-hint: ""
 disable-model-invocation: true
 ---
 
 # Persona Status
 
-Show currently active personas and session state.
-
-## Storage Locations
-
-Check these paths directly (do NOT search recursively from home):
-
-- **Local**: `<cwd>/.claude/plugin-data/assume-persona/.state.local.json`
-- **User**: `$HOME/.claude/plugin-data/assume-persona/.state.local.json`
+Show personas loaded in the current session and auto-load configuration.
 
 ## Instructions
 
-1. **Read state files directly** from these exact paths:
-   - `<cwd>/.claude/plugin-data/assume-persona/.state.local.json` (local - higher precedence)
-   - `$HOME/.claude/plugin-data/assume-persona/.state.local.json` (user)
+1. **Get status** using get-status.ts:
 
-2. **If no state files exist or no active personas**:
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/get-status.ts" \
+     --session "${CLAUDE_SESSION_ID}"
+   ```
+
+   The script returns JSON:
+   ```json
+   {
+     "loadedPersonas": ["archetype1", "archetype2"],
+     "autoLoad": ["archetype3"],
+     "configPath": "<cwd>/.claude/plugin-data/assume-persona/config.json"
+   }
+   ```
+
+2. **If no personas loaded (loadedPersonas empty)**:
    ```
    ## Persona Status
 
-   No personas currently active.
+   No personas loaded this session.
 
    Load one with: /assume-persona:load <archetype>
    List available: /assume-persona:list
    ```
    Stop here.
 
-3. **For each active persona**, display:
-   - Archetype name
-   - When it was loaded (relative time, e.g., "2 hours ago")
-   - Source location (local or user)
+3. **Display status** as a simple list with annotations:
 
-4. **Display status**:
+   For each persona in `loadedPersonas`:
+   - If also in `autoLoad` array → show `- archetype (auto-loaded)`
+   - Otherwise → show `- archetype`
 
    ```
    ## Persona Status
 
-   ### Active Personas
-
-   | Archetype | Loaded | Source |
-   |-----------|--------|--------|
-   | loud-guy | 2 hours ago | user |
-   | rust-systems | 30 min ago | local |
+   ### Loaded Personas
+   - claude-plugin-dev (auto-loaded)
+   - ux-designer
 
    ### Quick Actions
 
-   - Clear all: `/assume-persona:clear`
-   - Clear specific: `/assume-persona:clear <archetype>`
+   - Clear session state: `/assume-persona:clear`
    - Load another: `/assume-persona:load <archetype>`
+   - List all available: `/assume-persona:list`
+   ```
+
+4. **If autoLoad has personas not yet loaded**, add a note after the list:
+   ```
+   Auto-load config: {configPath}
    ```
 
 ## Notes
 
-- Shows personas from the state file, not what's in current context
-- If state says active but context was reset, the persona may not actually be in context
-- Use `/assume-persona:load` to re-inject if needed
+- Shows loaded personas with "(auto-loaded)" annotation where applicable
+- Auto-load personas are configured per-project in `config.json`
+- Use `/assume-persona:clear` to reset session state

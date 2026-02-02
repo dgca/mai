@@ -1,12 +1,12 @@
 ---
-description: Permanently delete persona files from storage
+description: Permanently delete persona skill directories from storage
 argument-hint: "[archetype...]"
 disable-model-invocation: true
 ---
 
 # Delete Persona
 
-Permanently delete persona files from storage. Unlike `clear` which only deactivates, this removes the `.md` files entirely.
+Permanently delete persona skill directories from storage. Unlike `clear` which only clears session state, this removes the skill directories entirely.
 
 ## Arguments
 
@@ -14,20 +14,23 @@ Permanently delete persona files from storage. Unlike `clear` which only deactiv
 
 ## Storage Locations
 
-Check these directories directly (do NOT search recursively from home):
+Personas are stored as skills in (do NOT search recursively from home):
 
-- **Local**: `<cwd>/.claude/plugin-data/assume-persona/personas/`
-- **User**: `$HOME/.claude/plugin-data/assume-persona/personas/`
+- **Local**: `<cwd>/.claude/skills/assume-persona--<archetype>/`
+- **User**: `$HOME/.claude/skills/assume-persona--<archetype>/`
 
-State files:
-- **Local**: `<cwd>/.claude/plugin-data/assume-persona/.state.local.json`
-- **User**: `$HOME/.claude/plugin-data/assume-persona/.state.local.json`
+State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
 
 ## Instructions
 
-1. **List all available personas** by checking both storage directories:
-   - List `*.md` files in each directory
-   - Track which scope (local/user) each persona belongs to
+1. **List all available personas** using list-personas.ts:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/list-personas.ts" --scope all --format json
+   ```
+
+   Parse the JSON response to get archetype names and scopes.
 
 2. **If no personas found**:
    ```
@@ -35,21 +38,18 @@ State files:
    ```
    Stop here.
 
-3. **If `$ARGUMENTS` is empty**, show all personas and ask which to delete:
-   ```
-   Available personas:
+3. **If `$ARGUMENTS` is empty**, use AskUserQuestion to let user select:
 
-   | Archetype | Scope |
-   |-----------|-------|
-   | react-expert | local |
-   | security-auditor | user |
+   Use `AskUserQuestion` tool with:
+   - question: "Which persona(s) to delete?"
+   - header: "Delete"
+   - multiSelect: true
+   - options: list of available personas (archetype as label, scope as description)
 
-   Which persona(s) to delete? (Enter archetype names, space-separated)
-   ```
-   Wait for user response.
+   Continue with selected archetype(s).
 
 4. **For each archetype to delete**:
-   - Find the persona file (check local first, then user)
+   - Find the persona in the list to determine its scope
    - If not found:
      ```
      Persona '<archetype>' not found.
@@ -62,7 +62,7 @@ State files:
 
    | Archetype | Scope | Path |
    |-----------|-------|------|
-   | react-expert | local | <cwd>/.claude/plugin-data/assume-persona/personas/react-expert.md |
+   | react-expert | local | <cwd>/.claude/skills/assume-persona--react-expert/ |
 
    This action is permanent and cannot be undone.
 
@@ -70,26 +70,32 @@ State files:
    ```
    Wait for user confirmation. If not confirmed, stop here.
 
-6. **Delete each confirmed persona file**
+6. **Delete each confirmed persona** using delete-persona.ts:
 
-7. **If deleted persona was active**, update state:
-   - Read relevant `.state.local.json` file
-   - Remove the archetype from `activePersonas` array
-   - Write updated state (or delete state file if empty)
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/delete-persona.ts" \
+     --archetype "<archetype>" --scope "<local|user>"
+   ```
 
-8. **Confirm deletion**:
+   The script:
+   - Removes the entire skill directory (SKILL.md + persona.md)
+   - Updates state.json to remove from loadedPersonas
+   - Returns JSON: `{ "success": true, "deleted": "...", "stateUpdated": true/false }`
+
+7. **Confirm deletion**:
    ```
    Deleted:
    - react-expert (local)
 
-   Note: If this persona was active, it has been deactivated.
+   Note: If this persona was loaded, it has been removed from session state.
    Run /assume-persona:list to see remaining personas.
    ```
 
 ## Notes
 
-- This permanently deletes files - use with caution
+- This permanently deletes skill directories - use with caution
 - Local personas are checked first (higher precedence)
 - If a persona exists in both scopes, only the higher-precedence one is deleted
-- Use `/assume-persona:clear` to deactivate without deleting
+- Use `/assume-persona:clear` to clear session state without deleting
 - Use `/assume-persona:list` to see available personas before deleting
