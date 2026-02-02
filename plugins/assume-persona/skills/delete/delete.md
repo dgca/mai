@@ -1,12 +1,12 @@
 ---
-description: Permanently delete persona files from storage
+description: Permanently delete persona skill directories from storage
 argument-hint: "[archetype...]"
 disable-model-invocation: true
 ---
 
 # Delete Persona
 
-Permanently delete persona files from storage. Unlike `clear` which only deactivates, this removes the `.md` files entirely.
+Permanently delete persona skill directories from storage. Unlike `clear` which only clears session state, this removes the skill directories entirely.
 
 ## Arguments
 
@@ -14,19 +14,19 @@ Permanently delete persona files from storage. Unlike `clear` which only deactiv
 
 ## Storage Locations
 
-Check these directories directly (do NOT search recursively from home):
+Personas are stored as skills in (do NOT search recursively from home):
 
-- **Local**: `<cwd>/.claude/plugin-data/assume-persona/personas/`
-- **User**: `$HOME/.claude/plugin-data/assume-persona/personas/`
+- **Local**: `<cwd>/.claude/skills/assume-persona--<archetype>/`
+- **User**: `$HOME/.claude/skills/assume-persona--<archetype>/`
 
-State files:
-- **Local**: `<cwd>/.claude/plugin-data/assume-persona/.state.local.json`
-- **User**: `$HOME/.claude/plugin-data/assume-persona/.state.local.json`
+State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
 
 ## Instructions
 
-1. **List all available personas** by checking both storage directories:
-   - List `*.md` files in each directory
+1. **List all available personas** by globbing both skill directories:
+   - Glob `assume-persona--*` in `<cwd>/.claude/skills/`
+   - Glob `assume-persona--*` in `$HOME/.claude/skills/`
+   - Extract archetype from directory name (strip `assume-persona--` prefix)
    - Track which scope (local/user) each persona belongs to
 
 2. **If no personas found**:
@@ -49,7 +49,7 @@ State files:
    Wait for user response.
 
 4. **For each archetype to delete**:
-   - Find the persona file (check local first, then user)
+   - Find the persona skill directory (check local first, then user)
    - If not found:
      ```
      Persona '<archetype>' not found.
@@ -62,7 +62,7 @@ State files:
 
    | Archetype | Scope | Path |
    |-----------|-------|------|
-   | react-expert | local | <cwd>/.claude/plugin-data/assume-persona/personas/react-expert.md |
+   | react-expert | local | <cwd>/.claude/skills/assume-persona--react-expert/ |
 
    This action is permanent and cannot be undone.
 
@@ -70,26 +70,27 @@ State files:
    ```
    Wait for user confirmation. If not confirmed, stop here.
 
-6. **Delete each confirmed persona file**
+6. **Delete each confirmed persona skill directory**
+   - Remove the entire `assume-persona--<archetype>/` directory (SKILL.md + persona.md)
 
-7. **If deleted persona was active**, update state:
-   - Read relevant `.state.local.json` file
-   - Remove the archetype from `activePersonas` array
-   - Write updated state (or delete state file if empty)
+7. **If deleted persona was in session state**, update state:
+   - Read `$HOME/.claude/plugin-data/assume-persona/state.json`
+   - Remove the archetype from current session's `loadedPersonas` array
+   - Write updated state (or delete session entry if empty)
 
 8. **Confirm deletion**:
    ```
    Deleted:
    - react-expert (local)
 
-   Note: If this persona was active, it has been deactivated.
+   Note: If this persona was loaded, it has been removed from session state.
    Run /assume-persona:list to see remaining personas.
    ```
 
 ## Notes
 
-- This permanently deletes files - use with caution
+- This permanently deletes skill directories - use with caution
 - Local personas are checked first (higher precedence)
 - If a persona exists in both scopes, only the higher-precedence one is deleted
-- Use `/assume-persona:clear` to deactivate without deleting
+- Use `/assume-persona:clear` to clear session state without deleting
 - Use `/assume-persona:list` to see available personas before deleting

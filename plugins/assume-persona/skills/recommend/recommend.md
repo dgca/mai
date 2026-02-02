@@ -10,15 +10,17 @@ Analyze the current conversation context and recommend relevant personas.
 
 ## Storage Locations
 
-Check these directories directly (do NOT search recursively from home):
+Personas are stored as skills in (do NOT search recursively from home):
 
-1. **Local/project**: `<cwd>/.claude/plugin-data/assume-persona/personas/`
-2. **User**: `$HOME/.claude/plugin-data/assume-persona/personas/`
+1. **Local/project**: `<cwd>/.claude/skills/assume-persona--*/`
+2. **User**: `$HOME/.claude/skills/assume-persona--*/`
 
 ## Instructions
 
-1. **Scan all available personas**:
-   - Read each `.md` file from all storage locations
+1. **Scan all available persona skills**:
+   - Glob for `assume-persona--*` directories in `<cwd>/.claude/skills/`
+   - Glob for `assume-persona--*` directories in `$HOME/.claude/skills/`
+   - Read each `persona.md` file
    - Parse YAML frontmatter to extract: `archetype`, `category`, `keywords`
    - Read the role description (first paragraph after title)
 

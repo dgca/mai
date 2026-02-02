@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Create Persona
 
-Research and create a new subject matter expert persona.
+Research and create a new subject matter expert persona as an auto-invocable skill.
 
 ## Arguments
 
@@ -14,10 +14,14 @@ Research and create a new subject matter expert persona.
 
 ## Storage Locations
 
-Personas can be saved to (do NOT search recursively from home):
+Personas are stored as skills in (do NOT search recursively from home):
 
-1. **Local/project**: `<cwd>/.claude/plugin-data/assume-persona/personas/`
-2. **User** (global): `$HOME/.claude/plugin-data/assume-persona/personas/`
+1. **Local/project**: `<cwd>/.claude/skills/assume-persona--<archetype>/`
+2. **User** (global): `$HOME/.claude/skills/assume-persona--<archetype>/`
+
+Each persona skill contains:
+- `SKILL.md` - Lightweight loader with description for auto-invocation
+- `persona.md` - Full persona content
 
 ## Instructions
 
@@ -25,9 +29,9 @@ Personas can be saved to (do NOT search recursively from home):
    - Normalize to kebab-case (e.g., "Rust Systems Programmer" → "rust-systems-programmer")
    - If empty, show error: "Usage: /assume-persona:create <archetype>"
 
-2. **Check if persona already exists** by checking each path directly:
-   - `<cwd>/.claude/plugin-data/assume-persona/personas/<archetype>.md` (local)
-   - `$HOME/.claude/plugin-data/assume-persona/personas/<archetype>.md` (user)
+2. **Check if persona already exists** by checking each skill directory:
+   - `<cwd>/.claude/skills/assume-persona--<archetype>/` (local)
+   - `$HOME/.claude/skills/assume-persona--<archetype>/` (user)
    - If found: "Persona '$ARGUMENTS' already exists. Use `/assume-persona:audit $ARGUMENTS` to review or `/assume-persona:load $ARGUMENTS` to activate."
    - Stop here if exists
 
@@ -55,7 +59,30 @@ Personas can be saved to (do NOT search recursively from home):
    </additional-context>
    ```
 
-5. **Distill research into persona** (200-400 lines max):
+5. **Create the SKILL.md file** (lightweight loader):
+
+   Generate a good description that captures when Claude should auto-invoke this persona. Include:
+   - Key topics and domains
+   - Technologies and tools
+   - Problem types and scenarios
+
+   ```yaml
+   ---
+   name: assume-persona--<archetype>
+   description: |
+     <Archetype> persona. Invoke when discussing: <topic1>, <topic2>,
+     <technology1>, <technology2>, <scenario1>, <scenario2>.
+   user-invocable: false
+   ---
+
+   !`node --experimental-strip-types --no-warnings "$HOME/.claude/plugin-data/assume-persona/scripts/load-persona.ts" "${CLAUDE_SESSION_ID}" "<archetype>" "<persona-path>/persona.md"`
+   ```
+
+   Where `<persona-path>` depends on the storage location chosen:
+   - Local: `$PWD/.claude/skills/assume-persona--<archetype>`
+   - User: `$HOME/.claude/skills/assume-persona--<archetype>`
+
+6. **Distill research into persona.md** (200-400 lines max):
 
 ```yaml
 ---
@@ -87,20 +114,24 @@ You are an expert <role description>...
 <distilled from research>
 ```
 
-6. **Ask storage preference**:
+7. **Ask storage preference**:
 ```
 Where should I save this persona?
 
-1. **Local** (.claude/plugin-data/assume-persona/personas/) - Specific to this project
-2. **User** (~/.claude/plugin-data/assume-persona/personas/) - Available globally
+1. **Local** (.claude/skills/assume-persona--<archetype>/) - Specific to this project
+2. **User** (~/.claude/skills/assume-persona--<archetype>/) - Available globally
 3. **Session only** - Don't save, just apply now
 ```
 
-7. **Save** (unless session-only):
-   - Create the chosen directory if needed
-   - Save as `<archetype>.md`
+8. **Save** (unless session-only):
+   - Create the skill directory: `assume-persona--<archetype>/`
+   - Save `SKILL.md` (with correct path for the chosen location)
+   - Save `persona.md`
 
-8. **Apply the persona** by outputting its full content, then confirm:
+9. **Apply the persona** by outputting its full content, then confirm:
 ```
 Persona '<archetype>' created and activated.
+
+The persona will auto-invoke when Claude detects relevant topics.
+Load manually: /assume-persona:load <archetype>
 ```

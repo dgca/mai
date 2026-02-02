@@ -2,47 +2,43 @@
 
 /**
  * Restore active personas on session start.
- * Reads state file and config file, outputs condensed persona summaries.
+ * - Installs/updates loader script to user location
+ * - Prunes stale sessions from state (older than 7 days)
+ * - Loads auto-load personas from project config
  */
 
-import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'fs';
+import { join, dirname } from 'path';
 import { homedir } from 'os';
 
-interface ActivePersona {
-  archetype: string;
-  loadedAt: string;
-  source: 'local' | 'user';
+interface SessionState {
+  loadedPersonas: string[];
+  lastAccess?: string;
 }
 
 interface State {
-  activePersonas: ActivePersona[];
+  [sessionId: string]: SessionState;
 }
 
 interface Config {
   autoLoad?: string[];
 }
 
-interface PersonaFile {
-  path: string;
-  source: 'local' | 'user';
-}
-
-interface LoadedPersona {
-  archetype: string;
-  source: 'local' | 'user';
-  loadSource: 'restored' | 'auto-loaded';
-  content: string;
-}
-
 // Storage locations
-const LOCAL_STATE = join(process.cwd(), '.claude/plugin-data/assume-persona/.state.local.json');
-const USER_STATE = join(homedir(), '.claude/plugin-data/assume-persona/.state.local.json');
+const USER_SCRIPTS_DIR = join(homedir(), '.claude/plugin-data/assume-persona/scripts');
+const LOADER_SCRIPT_NAME = 'load-persona.ts';
+const STATE_FILE = join(homedir(), '.claude/plugin-data/assume-persona/state.json');
 
 const LOCAL_CONFIG = join(process.cwd(), '.claude/plugin-data/assume-persona/config.json');
 
-const LOCAL_PERSONAS = join(process.cwd(), '.claude/plugin-data/assume-persona/personas');
-const USER_PERSONAS = join(homedir(), '.claude/plugin-data/assume-persona/personas');
+// Skill locations (new architecture)
+const LOCAL_SKILLS = join(process.cwd(), '.claude/skills');
+const USER_SKILLS = join(homedir(), '.claude/skills');
+
+const PERSONA_SKILL_PREFIX = 'assume-persona--';
+
+// Get plugin root from environment or compute from script location
+const PLUGIN_ROOT = process.env.CLAUDE_PLUGIN_ROOT || dirname(dirname(import.meta.url.replace('file://', '')));
 
 function readJsonFile<T>(filePath: string): T | null {
   try {
@@ -55,79 +51,121 @@ function readJsonFile<T>(filePath: string): T | null {
   return null;
 }
 
-function findPersonaFile(archetype: string, preferredSource?: string): PersonaFile | null {
-  const locations: Record<string, string> = {
-    local: join(LOCAL_PERSONAS, `${archetype}.md`),
-    user: join(USER_PERSONAS, `${archetype}.md`),
-  };
+function installLoaderScript(): void {
+  // Source script is bundled with the plugin
+  const sourceScript = join(PLUGIN_ROOT, 'scripts', LOADER_SCRIPT_NAME);
+  const targetScript = join(USER_SCRIPTS_DIR, LOADER_SCRIPT_NAME);
 
-  // Try preferred source first
-  if (preferredSource && locations[preferredSource] && existsSync(locations[preferredSource])) {
-    return { path: locations[preferredSource], source: preferredSource as PersonaFile['source'] };
+  // Create target directory if needed
+  mkdirSync(USER_SCRIPTS_DIR, { recursive: true });
+
+  // Copy the loader script
+  try {
+    copyFileSync(sourceScript, targetScript);
+  } catch {
+    // Ignore - might fail if source doesn't exist yet during development
+  }
+}
+
+function pruneStaleState(): void {
+  if (!existsSync(STATE_FILE)) {
+    return;
   }
 
-  // Fall back to precedence order
-  for (const [source, filePath] of Object.entries(locations)) {
-    if (existsSync(filePath)) {
-      return { path: filePath, source: source as PersonaFile['source'] };
+  let state: State;
+  try {
+    state = JSON.parse(readFileSync(STATE_FILE, 'utf8'));
+  } catch {
+    return;
+  }
+
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  let modified = false;
+
+  for (const sessionId of Object.keys(state)) {
+    const session = state[sessionId];
+    if (session.lastAccess) {
+      const lastAccess = new Date(session.lastAccess).getTime();
+      if (lastAccess < sevenDaysAgo) {
+        delete state[sessionId];
+        modified = true;
+      }
     }
   }
+
+  if (modified) {
+    if (Object.keys(state).length === 0) {
+      // Delete empty state file
+      try {
+        const { unlinkSync } = require('fs');
+        unlinkSync(STATE_FILE);
+      } catch {
+        // Ignore
+      }
+    } else {
+      writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
+    }
+  }
+}
+
+interface PersonaSkill {
+  archetype: string;
+  personaPath: string;
+  source: 'local' | 'user';
+}
+
+function findPersonaSkill(archetype: string): PersonaSkill | null {
+  const skillDirName = `${PERSONA_SKILL_PREFIX}${archetype}`;
+
+  // Check local first (higher precedence)
+  const localSkillDir = join(LOCAL_SKILLS, skillDirName);
+  const localPersonaPath = join(localSkillDir, 'persona.md');
+  if (existsSync(localPersonaPath)) {
+    return { archetype, personaPath: localPersonaPath, source: 'local' };
+  }
+
+  // Check user location
+  const userSkillDir = join(USER_SKILLS, skillDirName);
+  const userPersonaPath = join(userSkillDir, 'persona.md');
+  if (existsSync(userPersonaPath)) {
+    return { archetype, personaPath: userPersonaPath, source: 'user' };
+  }
+
   return null;
 }
 
 function main(): void {
-  // Read state (local takes precedence)
-  const state = readJsonFile<State>(LOCAL_STATE) ?? readJsonFile<State>(USER_STATE);
+  // 1. Install/update loader script
+  installLoaderScript();
 
-  // Read config for auto-load personas
+  // 2. Prune stale sessions
+  pruneStaleState();
+
+  // 3. Read config for auto-load personas
   const config = readJsonFile<Config>(LOCAL_CONFIG);
   const autoLoadArchetypes = config?.autoLoad ?? [];
 
-  // Get session-restored archetypes
-  const sessionArchetypes = state?.activePersonas?.map(p => p.archetype) ?? [];
-
-  // Find auto-load personas not already in session
-  const newAutoLoad = autoLoadArchetypes.filter(a => !sessionArchetypes.includes(a));
-
-  // If nothing to load, exit silently
-  if (sessionArchetypes.length === 0 && newAutoLoad.length === 0) {
+  // If nothing to auto-load, exit silently
+  if (autoLoadArchetypes.length === 0) {
     process.exit(0);
   }
 
-  const loadedPersonas: LoadedPersona[] = [];
-
-  // Load session-restored personas
-  for (const persona of state?.activePersonas ?? []) {
-    const { archetype, source } = persona;
-    const file = findPersonaFile(archetype, source);
-
-    if (!file) continue;
-
-    try {
-      const content = readFileSync(file.path, 'utf8');
-      loadedPersonas.push({
-        archetype,
-        source: file.source,
-        loadSource: 'restored',
-        content,
-      });
-    } catch {
-      // Skip on error
-    }
-  }
-
   // Load auto-load personas
-  for (const archetype of newAutoLoad) {
-    const file = findPersonaFile(archetype);
+  const loadedPersonas: Array<{ archetype: string; source: string; content: string }> = [];
 
-    if (!file) continue;
+  for (const archetype of autoLoadArchetypes) {
+    const skill = findPersonaSkill(archetype);
+
+    if (!skill) {
+      // Persona skill not found - skip silently
+      continue;
+    }
 
     try {
-      const content = readFileSync(file.path, 'utf8');
+      const content = readFileSync(skill.personaPath, 'utf8');
       loadedPersonas.push({
         archetype,
-        source: file.source,
-        loadSource: 'auto-loaded',
+        source: skill.source,
         content,
       });
     } catch {
@@ -140,27 +178,15 @@ function main(): void {
   }
 
   // Build notification lines
-  const autoLoaded = loadedPersonas
-    .filter(p => p.loadSource === 'auto-loaded')
-    .map(p => p.archetype);
-  const restored = loadedPersonas
-    .filter(p => p.loadSource === 'restored')
-    .map(p => p.archetype);
-
   const notificationLines: string[] = [];
-  if (autoLoaded.length > 0) {
-    notificationLines.push(`- Persona loaded from project config: ${autoLoaded.join(', ')}`);
-  }
-  if (restored.length > 0) {
-    notificationLines.push(`- Persona loaded from previous session: ${restored.join(', ')}`);
-  }
+  const archetypeList = loadedPersonas.map(p => p.archetype).join(', ');
+  notificationLines.push(`- Persona loaded from project config: ${archetypeList}`);
   notificationLines.push('- /assume-persona:help for more info');
 
   // Build persona output blocks
   const outputs = loadedPersonas.map(persona => {
-    const summary = persona.content;
     return `<active-persona archetype="${persona.archetype}" source="${persona.source}">
-${summary}
+${persona.content}
 </active-persona>`;
   });
 

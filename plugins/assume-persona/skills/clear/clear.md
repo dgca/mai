@@ -1,75 +1,77 @@
 ---
-description: Deactivate all active personas and clear persistence state
+description: Clear session state for loaded personas
 argument-hint: "[archetype]"
 disable-model-invocation: true
 ---
 
-# Clear Persona
+# Clear Persona State
 
-Deactivate active personas and clear persistence state.
+Clear session state to allow personas to be re-loaded. This does not delete persona files.
 
 ## Arguments
 
-`$ARGUMENTS` = optional specific archetype to clear (if empty, clears all)
+`$ARGUMENTS` = optional specific archetype to clear (if empty, clears all from session)
 
 ## Storage Locations
 
-Check these paths directly (do NOT search recursively from home):
-
-- **Local**: `<cwd>/.claude/plugin-data/assume-persona/.state.local.json`
-- **User**: `$HOME/.claude/plugin-data/assume-persona/.state.local.json`
+State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
 
 ## Instructions
 
-1. **Read current state directly** from these exact paths:
-   - `<cwd>/.claude/plugin-data/assume-persona/.state.local.json` (local)
-   - `$HOME/.claude/plugin-data/assume-persona/.state.local.json` (user)
+1. **Read current state** from `$HOME/.claude/plugin-data/assume-persona/state.json`
+   - Find entry for current session using `${CLAUDE_SESSION_ID}`
+   - Extract `loadedPersonas` array
 
-2. **If no state files exist or no active personas**:
+2. **If no state file exists or session has no loaded personas**:
    ```
-   No active personas to clear.
+   No personas loaded in current session.
    ```
    Stop here.
 
 3. **Parse `$ARGUMENTS`**:
-   - If empty: clear all active personas
+   - If empty: clear all personas from current session
    - If archetype specified: clear only that persona
 
 4. **If clearing specific archetype**:
-   - Check if it's in the active personas list
+   - Check if it's in the session's `loadedPersonas` list
    - If not found:
      ```
-     Persona '<archetype>' is not currently active.
+     Persona '<archetype>' is not loaded in current session.
 
-     Active personas: <list>
+     Loaded personas: <list>
      ```
      Stop here.
-   - Remove only that persona from the state
+   - Remove only that archetype from `loadedPersonas`
 
 5. **If clearing all**:
-   - Set `activePersonas` to empty array
+   - Remove the entire session entry from state
 
-6. **Update state file(s)**:
-   - Write updated state (or delete if empty)
-   - If all personas cleared, delete state files
+6. **Update state file**:
+   - If session entry is now empty, remove it
+   - If state file is now empty (no sessions), delete it
+   - Otherwise, write updated state
 
 7. **Confirm**:
    - If specific archetype:
      ```
-     Persona '<archetype>' deactivated.
+     Cleared '<archetype>' from session state.
 
-     Remaining active: <list or "none">
+     Remaining loaded: <list or "none">
+
+     The persona can now be re-loaded via auto-invocation or /assume-persona:load.
      ```
    - If all:
      ```
-     All personas deactivated.
+     Cleared all personas from session state.
 
-     Note: The persona context remains in this session's history.
-     Start a new session for a completely fresh context.
+     Note: The persona content already in this session's context remains.
+     Personas can now be re-loaded via auto-invocation or /assume-persona:load.
      ```
 
 ## Notes
 
-- This clears the state tracking for active personas
+- This clears session state used for deduplication
 - The persona content already injected in the current session remains in context
-- Use `/assume-persona:status` to see what's currently active
+- After clearing, the persona's auto-invocation can trigger again
+- Use `/assume-persona:status` to see what's currently loaded
+- Use `/assume-persona:delete` to permanently remove persona files

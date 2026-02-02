@@ -14,10 +14,14 @@ Preview a persona's full content without activating it or changing state.
 
 ## Storage Locations
 
-Check these directories directly in order (do NOT search recursively from home):
+Personas are stored as skills in (do NOT search recursively from home):
 
-1. **Local/project**: `<cwd>/.claude/plugin-data/assume-persona/personas/`
-2. **User**: `$HOME/.claude/plugin-data/assume-persona/personas/`
+1. **Local/project**: `<cwd>/.claude/skills/assume-persona--<archetype>/`
+2. **User**: `$HOME/.claude/skills/assume-persona--<archetype>/`
+
+Each persona skill contains:
+- `SKILL.md` - Metadata and loader
+- `persona.md` - Full persona content
 
 ## Instructions
 
@@ -25,16 +29,16 @@ Check these directories directly in order (do NOT search recursively from home):
    - If empty, list available personas and let user pick:
      ```
      Available personas:
-     - loud-guy (local)
-     - security-expert (user)
+     - security-expert (local)
+     - typescript-guru (user)
 
      Which persona to preview?
      ```
      Wait for user response, then continue.
 
-2. **Check for the persona file directly** (in precedence order):
-   - `<cwd>/.claude/plugin-data/assume-persona/personas/<archetype>.md` (local)
-   - `$HOME/.claude/plugin-data/assume-persona/personas/<archetype>.md` (user)
+2. **Find the persona skill directory** (in precedence order):
+   - `<cwd>/.claude/skills/assume-persona--<archetype>/persona.md` (local)
+   - `$HOME/.claude/skills/assume-persona--<archetype>/persona.md` (user)
 
 3. **If NOT found**:
    ```
@@ -45,7 +49,7 @@ Check these directories directly in order (do NOT search recursively from home):
    ```
    Stop here.
 
-4. **Read and display the persona file**:
+4. **Read and display the persona.md file**:
 
    ```
    ## Persona Preview: $ARGUMENTS
@@ -58,7 +62,7 @@ Check these directories directly in order (do NOT search recursively from home):
 
    ---
 
-   <full persona content including frontmatter>
+   <full persona.md content including frontmatter>
 
    ---
 
@@ -73,4 +77,4 @@ Check these directories directly in order (do NOT search recursively from home):
 - This is a read-only preview - no state changes occur
 - The persona is NOT injected into context
 - Useful for reviewing before deciding to load
-- Shows the raw file including YAML frontmatter
+- Shows the raw persona.md file including YAML frontmatter

@@ -14,12 +14,16 @@ Load one or more personas and activate them for the current session.
 
 ## Storage Locations
 
-Check these directories directly in order (do NOT search recursively from home):
+Personas are stored as skills in (do NOT search recursively from home):
 
-1. **Local/project**: `<cwd>/.claude/plugin-data/assume-persona/personas/`
-2. **User**: `$HOME/.claude/plugin-data/assume-persona/personas/`
+1. **Local/project**: `<cwd>/.claude/skills/assume-persona--<archetype>/`
+2. **User**: `$HOME/.claude/skills/assume-persona--<archetype>/`
 
-State file: `<cwd>/.claude/plugin-data/assume-persona/.state.local.json`
+Each persona skill contains:
+- `SKILL.md` - Metadata and loader
+- `persona.md` - Full persona content
+
+State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
 
 ## Instructions
 
@@ -29,16 +33,16 @@ State file: `<cwd>/.claude/plugin-data/assume-persona/.state.local.json`
    - If empty, list available personas and let user pick:
      ```
      Available personas:
-     - loud-guy (local)
-     - security-expert (user)
+     - security-expert (local)
+     - typescript-guru (user)
 
      Which persona(s) to load?
      ```
      Wait for user response, then continue.
 
-2. **For each archetype, check for the persona file directly** (in precedence order):
-   - `<cwd>/.claude/plugin-data/assume-persona/personas/<archetype>.md` (local)
-   - `$HOME/.claude/plugin-data/assume-persona/personas/<archetype>.md` (user)
+2. **For each archetype, find the persona skill directory** (in precedence order):
+   - `<cwd>/.claude/skills/assume-persona--<archetype>/persona.md` (local)
+   - `$HOME/.claude/skills/assume-persona--<archetype>/persona.md` (user)
 
 3. **If any persona NOT found**:
    ```
@@ -67,24 +71,23 @@ State file: `<cwd>/.claude/plugin-data/assume-persona/.state.local.json`
    If user chooses 1 or no concerns, proceed.
 
 6. **Apply the persona(s)**:
-   - Output the full persona content (everything after YAML frontmatter) for each
+   - Read and output the full content from `persona.md` for each
    - This injects the persona(s) into context for the session
 
-7. **Update state file** for persistence:
-   - Write to `.claude/plugin-data/assume-persona/.state.local.json`:
+7. **Update state file** for deduplication:
+   - Read existing state from `$HOME/.claude/plugin-data/assume-persona/state.json`
+   - Add the loaded archetype(s) to the current session's `loadedPersonas` array
+   - Format:
      ```json
      {
-       "activePersonas": [
-         {
-           "archetype": "<archetype>",
-           "loadedAt": "<ISO timestamp>",
-           "source": "local|user"
-         }
-       ]
+       "<session-id>": {
+         "loadedPersonas": ["archetype1", "archetype2"],
+         "lastAccess": "<ISO timestamp>"
+       }
      }
      ```
    - Create directories if needed
-   - This enables auto-restore on next session start
+   - This enables deduplication (auto-invoked skills won't re-load)
 
 8. **Confirm**:
    ```
@@ -96,7 +99,8 @@ State file: `<cwd>/.claude/plugin-data/assume-persona/.state.local.json`
 ## Notes
 
 - Multiple personas can be active simultaneously
-- Personas are automatically restored on new sessions (condensed summary injected)
-- Use `/assume-persona:clear` to deactivate personas and stop auto-restore
-- Use `/assume-persona:status` to see active personas
+- Personas auto-invoke based on their SKILL.md description
+- The loader script prevents duplicate loading within a session
+- Use `/assume-persona:clear` to reset session state
+- Use `/assume-persona:status` to see loaded personas
 - Local personas take precedence over user personas
