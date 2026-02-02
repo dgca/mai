@@ -6,6 +6,10 @@
  * Usage:
  *   audit-persona.ts <file> [--check-age]
  *
+ * The <file> can be:
+ *   - Path to persona.md file
+ *   - Path to skill directory containing persona.md
+ *
  * Output (JSON):
  * {
  *   "archetype": "typescript-fullstack",
@@ -31,6 +35,12 @@
  *     "lengthStatus": "good" | "short" | "long",
  *     "completeness": 0.83
  *   },
+ *   "skillMd": {
+ *     "found": true,
+ *     "description": "TypeScript fullstack persona. Invoke when...",
+ *     "descriptionLength": 120,
+ *     "hasKeywords": true
+ *   },
  *   "suggestions": [
  *     "Add ## Mental Models section",
  *     "Consider updating - persona is 8 months old"
@@ -38,8 +48,8 @@
  * }
  */
 
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { readFileSync, existsSync, statSync } from 'fs';
+import { join, dirname, basename } from 'path';
 import { homedir } from 'os';
 
 interface AgeInfo {
@@ -65,6 +75,13 @@ interface QualityInfo {
   completeness: number;
 }
 
+interface SkillMdInfo {
+  found: boolean;
+  description?: string;
+  descriptionLength?: number;
+  hasKeywords?: boolean;
+}
+
 interface AuditResult {
   archetype: string;
   location: 'local' | 'user' | 'file';
@@ -84,6 +101,7 @@ interface AuditResult {
     tools: SectionCheck;
   };
   quality: QualityInfo;
+  skillMd: SkillMdInfo;
   suggestions: string[];
 }
 
@@ -162,7 +180,59 @@ function determineLocation(filePath: string): 'local' | 'user' | 'file' {
   return 'file';
 }
 
-function audit(content: string, filePath: string, checkAge: boolean): AuditResult {
+function findSkillMd(personaPath: string): SkillMdInfo {
+  // personaPath might be persona.md or the skill directory
+  let skillDir: string;
+
+  const absPath = personaPath.startsWith('/') ? personaPath : join(process.cwd(), personaPath);
+
+  try {
+    const stat = statSync(absPath);
+    if (stat.isDirectory()) {
+      skillDir = absPath;
+    } else {
+      // It's a file, get the parent directory
+      skillDir = dirname(absPath);
+    }
+  } catch {
+    return { found: false };
+  }
+
+  const skillMdPath = join(skillDir, 'SKILL.md');
+  if (!existsSync(skillMdPath)) {
+    return { found: false };
+  }
+
+  try {
+    const content = readFileSync(skillMdPath, 'utf8');
+
+    // Parse frontmatter for description
+    const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
+    if (!frontmatterMatch) {
+      return { found: true };
+    }
+
+    const yaml = frontmatterMatch[1];
+    const descMatch = yaml.match(/^description:\s*(.+)$/m);
+    const description = descMatch ? descMatch[1].trim() : undefined;
+
+    // Check if description mentions specific keywords/technologies
+    const hasKeywords = description
+      ? /\b(typescript|react|node|api|database|security|testing|docker|kubernetes|aws|gcp|azure|python|rust|go|java|c\+\+|frontend|backend|fullstack|devops|data|ml|ai)\b/i.test(description)
+      : false;
+
+    return {
+      found: true,
+      description,
+      descriptionLength: description?.length,
+      hasKeywords,
+    };
+  } catch {
+    return { found: false };
+  }
+}
+
+function audit(content: string, filePath: string, checkAge: boolean, skillMdInfo: SkillMdInfo): AuditResult {
   const suggestions: string[] = [];
   const lines = content.split('\n');
   const totalLines = lines.length;
@@ -310,6 +380,20 @@ function audit(content: string, filePath: string, checkAge: boolean): AuditResul
     lengthStatus = 'good';
   }
 
+  // SKILL.md suggestions
+  if (!skillMdInfo.found) {
+    suggestions.push('SKILL.md not found - persona may not auto-invoke');
+  } else if (!skillMdInfo.description) {
+    suggestions.push('SKILL.md has no description - add one for auto-invocation');
+  } else {
+    if (skillMdInfo.descriptionLength && skillMdInfo.descriptionLength < 50) {
+      suggestions.push('SKILL.md description is very short - add more keywords for better matching');
+    }
+    if (!skillMdInfo.hasKeywords) {
+      suggestions.push('SKILL.md description lacks specific technology/topic keywords');
+    }
+  }
+
   return {
     archetype: archetype || 'unknown',
     location: determineLocation(filePath),
@@ -321,6 +405,7 @@ function audit(content: string, filePath: string, checkAge: boolean): AuditResul
       lengthStatus,
       completeness: Math.round(completeness * 100) / 100,
     },
+    skillMd: skillMdInfo,
     suggestions,
   };
 }
@@ -335,15 +420,27 @@ function main(): void {
 
   const { file, checkAge } = args;
 
-  if (!existsSync(file)) {
+  // Handle both persona.md path and skill directory path
+  let personaPath = file;
+  try {
+    const stat = statSync(file);
+    if (stat.isDirectory()) {
+      personaPath = join(file, 'persona.md');
+    }
+  } catch {
+    // File doesn't exist, will be caught below
+  }
+
+  if (!existsSync(personaPath)) {
     console.log(JSON.stringify({
-      error: `File not found: ${file}`,
+      error: `File not found: ${personaPath}`,
     }, null, 2));
     process.exit(1);
   }
 
-  const content = readFileSync(file, 'utf8');
-  const result = audit(content, file, checkAge);
+  const content = readFileSync(personaPath, 'utf8');
+  const skillMdInfo = findSkillMd(personaPath);
+  const result = audit(content, personaPath, checkAge, skillMdInfo);
 
   console.log(JSON.stringify(result, null, 2));
 }

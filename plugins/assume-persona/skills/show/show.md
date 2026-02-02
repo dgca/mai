@@ -26,19 +26,42 @@ Each persona skill contains:
 ## Instructions
 
 1. **Parse the archetype** from `$ARGUMENTS`
-   - If empty, list available personas and let user pick:
-     ```
-     Available personas:
-     - security-expert (local)
-     - typescript-guru (user)
+   - If empty, get list and let user pick using AskUserQuestion:
 
-     Which persona to preview?
+     ```bash
+     node --experimental-strip-types --no-warnings \
+       "${CLAUDE_PLUGIN_ROOT}/scripts/list-personas.ts" --scope all --format json
      ```
-     Wait for user response, then continue.
 
-2. **Find the persona skill directory** (in precedence order):
-   - `<cwd>/.claude/skills/assume-persona--<archetype>/persona.md` (local)
-   - `$HOME/.claude/skills/assume-persona--<archetype>/persona.md` (user)
+     Use `AskUserQuestion` tool with:
+     - question: "Which persona to preview?"
+     - header: "Persona"
+     - options: list of available personas (archetype + scope as description)
+
+     Continue with selected archetype.
+
+2. **Get persona content** using show-persona.ts:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/show-persona.ts" "<archetype>"
+   ```
+
+   The script returns JSON:
+   ```json
+   {
+     "found": true,
+     "scope": "local",
+     "archetype": "typescript-fullstack",
+     "created": "2024-01-15",
+     "category": "web-development",
+     "keywords": ["typescript", "react"],
+     "lineCount": 245,
+     "content": "---\narchetype: typescript-fullstack\n..."
+   }
+   ```
+
+   Or if not found: `{ "found": false }`
 
 3. **If NOT found**:
    ```
@@ -49,27 +72,27 @@ Each persona skill contains:
    ```
    Stop here.
 
-4. **Read and display the persona.md file**:
+4. **Display the persona** using data from script output:
 
    ```
-   ## Persona Preview: $ARGUMENTS
+   ## Persona Preview: {archetype}
 
-   **Source**: <local|user>
-   **Created**: <date from frontmatter>
-   **Category**: <category if present>
-   **Keywords**: <keywords if present>
-   **Lines**: <line count>
+   **Source**: {scope}
+   **Created**: {created}
+   **Category**: {category or "uncategorized"}
+   **Keywords**: {keywords array or "none"}
+   **Lines**: {lineCount}
 
    ---
 
-   <full persona.md content including frontmatter>
+   {content}
 
    ---
 
    ### Actions
 
-   - Load this persona: `/assume-persona:load $ARGUMENTS`
-   - Audit this persona: `/assume-persona:audit $ARGUMENTS`
+   - Load this persona: `/assume-persona:load {archetype}`
+   - Audit this persona: `/assume-persona:audit {archetype}`
    ```
 
 ## Notes

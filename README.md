@@ -18,7 +18,7 @@ node@^22.6.0
 
 ### assume-persona
 
-Create and load expert personas for domain-specific assistance. Define a React architect, security auditor, or any specialist—Claude adopts their expertise and perspective.
+Create and load expert personas for domain-specific assistance. Define a React architect, security auditor, or any specialist—Claude adopts their expertise and perspective. Import existing content (docs, articles, notes) and auto-generate personas from it.
 
 ```
 /plugin install assume-persona@mai

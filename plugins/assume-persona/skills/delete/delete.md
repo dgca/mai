@@ -38,18 +38,15 @@ State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
    ```
    Stop here.
 
-3. **If `$ARGUMENTS` is empty**, show all personas and ask which to delete:
-   ```
-   Available personas:
+3. **If `$ARGUMENTS` is empty**, use AskUserQuestion to let user select:
 
-   | Archetype | Scope |
-   |-----------|-------|
-   | react-expert | local |
-   | security-auditor | user |
+   Use `AskUserQuestion` tool with:
+   - question: "Which persona(s) to delete?"
+   - header: "Delete"
+   - multiSelect: true
+   - options: list of available personas (archetype as label, scope as description)
 
-   Which persona(s) to delete? (Enter archetype names, space-separated)
-   ```
-   Wait for user response.
+   Continue with selected archetype(s).
 
 4. **For each archetype to delete**:
    - Find the persona in the list to determine its scope

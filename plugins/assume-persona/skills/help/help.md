@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Assume Persona Help
 
-Display the help guide below:
+Output the following help content verbatim to the user (preserve markdown formatting):
 
 ```
 ## Assume Persona Plugin

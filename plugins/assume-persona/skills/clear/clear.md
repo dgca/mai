@@ -12,60 +12,57 @@ Clear session state to allow personas to be re-loaded. This does not delete pers
 
 `$ARGUMENTS` = optional specific archetype to clear (if empty, clears all from session)
 
-## Storage Locations
-
-State file: `$HOME/.claude/plugin-data/assume-persona/state.json`
-
 ## Instructions
 
-1. **Read current state** from `$HOME/.claude/plugin-data/assume-persona/state.json`
-   - Find entry for current session using `${CLAUDE_SESSION_ID}`
-   - Extract `loadedPersonas` array
+1. **Clear session state** using clear-session.ts:
 
-2. **If no state file exists or session has no loaded personas**:
+   ```bash
+   # Clear all personas from session
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/clear-session.ts" "${CLAUDE_SESSION_ID}"
+
+   # OR clear specific archetype
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/clear-session.ts" "${CLAUDE_SESSION_ID}" "<archetype>"
    ```
-   No personas loaded in current session.
-   ```
-   Stop here.
 
-3. **Parse `$ARGUMENTS`**:
-   - If empty: clear all personas from current session
-   - If archetype specified: clear only that persona
+   The script returns JSON:
+   - Success (all): `{ "cleared": "all", "remaining": [] }`
+   - Success (specific): `{ "cleared": ["archetype1"], "remaining": ["archetype2"] }`
+   - No state: `{ "error": "No personas loaded in current session", "cleared": [], "remaining": [] }`
+   - Not found: `{ "error": "Persona 'foo' is not loaded...", "loaded": [...], "cleared": [], "remaining": [] }`
 
-4. **If clearing specific archetype**:
-   - Check if it's in the session's `loadedPersonas` list
-   - If not found:
+2. **Handle results**:
+
+   - If `error` with "No personas loaded":
+     ```
+     No personas loaded in current session.
+     ```
+     Stop here.
+
+   - If `error` with "not loaded in current session":
      ```
      Persona '<archetype>' is not loaded in current session.
 
-     Loaded personas: <list>
+     Loaded personas: {loaded array}
      ```
      Stop here.
-   - Remove only that archetype from `loadedPersonas`
 
-5. **If clearing all**:
-   - Remove the entire session entry from state
-
-6. **Update state file**:
-   - If session entry is now empty, remove it
-   - If state file is now empty (no sessions), delete it
-   - Otherwise, write updated state
-
-7. **Confirm**:
-   - If specific archetype:
-     ```
-     Cleared '<archetype>' from session state.
-
-     Remaining loaded: <list or "none">
-
-     The persona can now be re-loaded via auto-invocation or /assume-persona:load.
-     ```
-   - If all:
+   - If `cleared` is `"all"`:
      ```
      Cleared all personas from session state.
 
      Note: The persona content already in this session's context remains.
      Personas can now be re-loaded via auto-invocation or /assume-persona:load.
+     ```
+
+   - If `cleared` is an array:
+     ```
+     Cleared '<archetype>' from session state.
+
+     Remaining loaded: {remaining array or "none"}
+
+     The persona can now be re-loaded via auto-invocation or /assume-persona:load.
      ```
 
 ## Notes

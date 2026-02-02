@@ -17,12 +17,14 @@ Personas are stored as skills in (do NOT search recursively from home):
 
 ## Instructions
 
-1. **Scan all available persona skills**:
-   - Glob for `assume-persona--*` directories in `<cwd>/.claude/skills/`
-   - Glob for `assume-persona--*` directories in `$HOME/.claude/skills/`
-   - Read each `persona.md` file
-   - Parse YAML frontmatter to extract: `archetype`, `category`, `keywords`
-   - Read the role description (first paragraph after title)
+1. **Scan all available persona skills** using list-personas.ts with keywords:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/list-personas.ts" --scope all --format json --include-keywords
+   ```
+
+   This returns JSON with each persona's archetype, description, category, scope, path, and keywords array from frontmatter.
 
 2. **Analyze current conversation context**:
    - What topics have been discussed?

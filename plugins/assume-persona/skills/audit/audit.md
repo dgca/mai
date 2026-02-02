@@ -26,27 +26,28 @@ Each persona skill contains:
 
 1. **Parse `$ARGUMENTS`**:
    - If archetype provided, audit that one
-   - If empty, run list-personas.ts and let user pick:
+   - If empty, get list and let user pick using AskUserQuestion:
 
      ```bash
      node --experimental-strip-types --no-warnings \
        "${CLAUDE_PLUGIN_ROOT}/scripts/list-personas.ts" --scope all --format json
      ```
 
-     Then show:
-     ```
-     Available personas:
-     - security-expert (user)
-     - typescript-guru (local)
+     Use `AskUserQuestion` tool with:
+     - question: "Which persona would you like to audit?"
+     - header: "Persona"
+     - options: list of available personas (archetype + scope as description)
 
-     Which one would you like to audit?
-     ```
+     Continue with selected archetype.
 
-2. **Find the persona skill directory** (in precedence order):
-   - `<cwd>/.claude/skills/assume-persona--<archetype>/` (local)
-   - `$HOME/.claude/skills/assume-persona--<archetype>/` (user)
+2. **Check if persona exists** using check-exists.ts:
 
-3. **If NOT found**:
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/check-exists.ts" "<archetype>"
+   ```
+
+   If `{ "exists": false }`:
    ```
    Persona '<archetype>' not found.
 
@@ -54,15 +55,23 @@ Each persona skill contains:
    ```
    Stop here.
 
-4. **Run audit-persona.ts** for structural analysis:
+3. **Run audit-persona.ts** for structural analysis:
+
+   Use the path from check-exists.ts result. The script accepts skill directory paths:
 
    ```bash
+   # For local scope
    node --experimental-strip-types --no-warnings \
      "${CLAUDE_PLUGIN_ROOT}/scripts/audit-persona.ts" \
-     "<path-to-persona.md>" --check-age
+     ".claude/skills/assume-persona--<archetype>" --check-age
+
+   # For user scope
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/audit-persona.ts" \
+     "$HOME/.claude/skills/assume-persona--<archetype>" --check-age
    ```
 
-   The script returns JSON:
+   The script returns JSON including SKILL.md info:
    ```json
    {
      "archetype": "typescript-fullstack",
@@ -89,6 +98,12 @@ Each persona skill contains:
        "lengthStatus": "good",
        "completeness": 0.83
      },
+     "skillMd": {
+       "found": true,
+       "description": "TypeScript fullstack persona. Invoke when...",
+       "descriptionLength": 120,
+       "hasKeywords": true
+     },
      "suggestions": [
        "Add ## Mental Models section",
        "Consider updating - persona is 8 months old"
@@ -96,13 +111,7 @@ Each persona skill contains:
    }
    ```
 
-5. **Read SKILL.md** and check description quality:
-   - Is description present and non-empty?
-   - Does it include specific keywords/topics?
-   - Is it under 200 characters? (overly brief)
-   - Does it mention concrete technologies, tools, or scenarios?
-
-6. **Spawn agent** to analyze content quality:
+4. **Spawn agent** to analyze content quality:
    ```
    Analyze this persona for completeness, currency, and actionability.
    Return specific improvement recommendations.
@@ -112,7 +121,7 @@ Each persona skill contains:
    </persona>
    ```
 
-7. **Present combined output**:
+5. **Present combined output** (use data from audit-persona.ts):
 
    ```
    ## Persona Audit: <archetype>
@@ -129,7 +138,9 @@ Each persona skill contains:
    ### Auto-Invocation (SKILL.md)
    | Check | Status | Details |
    |-------|--------|---------|
-   | Description | ✓ Good | Includes specific keywords |
+   | Found | ✓/✗ | {skillMd.found} |
+   | Description | ✓ Good / ⚠ Short / ✗ Missing | {skillMd.descriptionLength} chars |
+   | Keywords | ✓/⚠ | {skillMd.hasKeywords ? "Has tech keywords" : "No specific keywords"} |
 
    ### Content Analysis
    <agent assessment>
@@ -145,15 +156,25 @@ Each persona skill contains:
    3. None - keep as is
    ```
 
-8. **If user wants to choose specific ones**:
+6. **If user wants to choose specific ones**:
    - Let them specify (e.g., "1, 3, 5" or "all except 2")
 
-9. **Apply approved changes**:
-    - Edit persona.md with selected content improvements
-    - Edit SKILL.md description if improvements were suggested
-    - Update `created` date in persona.md to today
+7. **Apply approved changes** using update-persona.ts:
 
-10. **Confirm**:
+   Get the persona content (use show-persona.ts), apply improvements, then save:
+
+   ```bash
+   echo '<improved persona.md content>' | node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/update-persona.ts" \
+     --archetype "<archetype>" \
+     --scope "<local|user>" \
+     --update-date \
+     --description "<new description if SKILL.md needs updating>"
+   ```
+
+   The script updates persona.md and optionally SKILL.md description.
+
+8. **Confirm**:
     ```
     Persona '<archetype>' updated.
     ```

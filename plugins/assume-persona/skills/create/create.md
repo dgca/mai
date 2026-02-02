@@ -29,11 +29,19 @@ Each persona skill contains:
    - Normalize to kebab-case (e.g., "Rust Systems Programmer" → "rust-systems-programmer")
    - If empty, show error: "Usage: /assume-persona:create <archetype>"
 
-2. **Check if persona already exists** by checking each skill directory:
-   - `<cwd>/.claude/skills/assume-persona--<archetype>/` (local)
-   - `$HOME/.claude/skills/assume-persona--<archetype>/` (user)
-   - If found: "Persona '$ARGUMENTS' already exists. Use `/assume-persona:audit $ARGUMENTS` to review or `/assume-persona:load $ARGUMENTS` to activate."
-   - Stop here if exists
+2. **Check if persona already exists** using check-exists.ts:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/check-exists.ts" "<archetype>"
+   ```
+
+   The script returns JSON:
+   - `{ "exists": true, "scope": "local", "path": "..." }` - persona found
+   - `{ "exists": false }` - persona not found
+
+   If exists: "Persona '$ARGUMENTS' already exists. Use `/assume-persona:audit $ARGUMENTS` to review or `/assume-persona:load $ARGUMENTS` to activate."
+   Stop here if exists
 
 3. **Ask for additional context**:
    ```
@@ -129,10 +137,19 @@ Each persona skill contains:
 
    If validation fails, show the error and offer to fix the issues.
 
-9. **Apply the persona** by outputting its full content, then confirm:
+9. **Load the persona** using load-persona.ts:
+
+   ```bash
+   node --experimental-strip-types --no-warnings \
+     "${CLAUDE_PLUGIN_ROOT}/scripts/load-persona.ts" \
+     "${CLAUDE_SESSION_ID}" "<archetype>"
+   ```
+
+   The script outputs the persona content (display it to inject into context) and updates state.json.
+
+   Then confirm:
    ```
    Persona '<archetype>' created and activated.
 
    The persona will auto-invoke when Claude detects relevant topics.
-   Load manually: /assume-persona:load <archetype>
    ```

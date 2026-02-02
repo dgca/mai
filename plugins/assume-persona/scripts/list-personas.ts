@@ -4,9 +4,14 @@
  * Find all available persona skills across scopes.
  *
  * Usage:
- *   list-personas.ts [--scope <local|user|all>] [--format <json|text>]
+ *   list-personas.ts [--scope <local|user|all>] [--format <json|text>] [--session <id>] [--include-keywords]
  *
  * Defaults: --scope all --format json
+ *
+ * Options:
+ *   --session <id>       Only check this session for loaded status (more accurate)
+ *                        Without this flag, shows personas loaded in ANY session
+ *   --include-keywords   Include keywords array from frontmatter for each persona
  *
  * Output (JSON):
  * {
@@ -45,6 +50,7 @@ interface PersonaInfo {
   lineCount: number;
   loaded: boolean;
   autoLoad: boolean;
+  keywords?: string[];
 }
 
 interface SessionState {
@@ -75,10 +81,12 @@ const LOCAL_CONFIG = join(process.cwd(), '.claude/plugin-data/assume-persona/con
 const LOCAL_SKILLS = join(process.cwd(), '.claude/skills');
 const USER_SKILLS = join(homedir(), '.claude/skills');
 
-function parseArgs(): { scope: 'local' | 'user' | 'all'; format: 'json' | 'text' } {
+function parseArgs(): { scope: 'local' | 'user' | 'all'; format: 'json' | 'text'; session: string | null; includeKeywords: boolean } {
   const args = process.argv.slice(2);
   let scope: 'local' | 'user' | 'all' = 'all';
   let format: 'json' | 'text' = 'json';
+  let session: string | null = null;
+  let includeKeywords = false;
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--scope' && args[i + 1]) {
@@ -91,18 +99,22 @@ function parseArgs(): { scope: 'local' | 'user' | 'all'; format: 'json' | 'text'
       if (f === 'json' || f === 'text') {
         format = f;
       }
+    } else if (args[i] === '--session' && args[i + 1]) {
+      session = args[++i];
+    } else if (args[i] === '--include-keywords') {
+      includeKeywords = true;
     }
   }
 
-  return { scope, format };
+  return { scope, format, session, includeKeywords };
 }
 
-function parseFrontmatter(content: string): { archetype?: string; created?: string; category?: string } {
+function parseFrontmatter(content: string): { archetype?: string; created?: string; category?: string; keywords?: string[] } {
   const frontmatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
   if (!frontmatterMatch) return {};
 
   const yaml = frontmatterMatch[1];
-  const result: { archetype?: string; created?: string; category?: string } = {};
+  const result: { archetype?: string; created?: string; category?: string; keywords?: string[] } = {};
 
   const archetypeMatch = yaml.match(/^archetype:\s*(.+)$/m);
   if (archetypeMatch) result.archetype = archetypeMatch[1].trim();
@@ -112,6 +124,19 @@ function parseFrontmatter(content: string): { archetype?: string; created?: stri
 
   const categoryMatch = yaml.match(/^category:\s*(.+)$/m);
   if (categoryMatch) result.category = categoryMatch[1].trim();
+
+  // Parse keywords list
+  const keywordsMatch = yaml.match(/^keywords:\s*\n((?:\s+-\s+.+\n?)+)/m);
+  if (keywordsMatch) {
+    const keywordsBlock = keywordsMatch[1];
+    const keywords = keywordsBlock
+      .split('\n')
+      .map(line => line.replace(/^\s+-\s+/, '').trim())
+      .filter(k => k.length > 0);
+    if (keywords.length > 0) {
+      result.keywords = keywords;
+    }
+  }
 
   return result;
 }
@@ -129,7 +154,7 @@ function extractDescription(content: string): string {
   return firstPara.substring(0, 100) + (firstPara.length > 100 ? '...' : '');
 }
 
-function findPersonasInDir(dir: string, scope: 'local' | 'user'): PersonaInfo[] {
+function findPersonasInDir(dir: string, scope: 'local' | 'user', includeKeywords: boolean): PersonaInfo[] {
   const personas: PersonaInfo[] = [];
 
   if (!existsSync(dir)) {
@@ -163,7 +188,7 @@ function findPersonasInDir(dir: string, scope: 'local' | 'user'): PersonaInfo[] 
       const fm = parseFrontmatter(content);
       const archetype = entry.replace(PERSONA_SKILL_PREFIX, '');
 
-      personas.push({
+      const personaInfo: PersonaInfo = {
         archetype,
         description: extractDescription(content),
         category: fm.category || 'uncategorized',
@@ -175,7 +200,13 @@ function findPersonasInDir(dir: string, scope: 'local' | 'user'): PersonaInfo[] 
         lineCount: content.split('\n').length,
         loaded: false, // Will be filled in later
         autoLoad: false, // Will be filled in later
-      });
+      };
+
+      if (includeKeywords && fm.keywords) {
+        personaInfo.keywords = fm.keywords;
+      }
+
+      personas.push(personaInfo);
     } catch {
       // Skip on error
     }
@@ -184,7 +215,7 @@ function findPersonasInDir(dir: string, scope: 'local' | 'user'): PersonaInfo[] 
   return personas;
 }
 
-function getLoadedPersonas(): Set<string> {
+function getLoadedPersonas(sessionId: string | null): Set<string> {
   const loaded = new Set<string>();
 
   if (!existsSync(STATE_FILE)) {
@@ -193,11 +224,21 @@ function getLoadedPersonas(): Set<string> {
 
   try {
     const state: State = JSON.parse(readFileSync(STATE_FILE, 'utf8'));
-    // Check all sessions (we don't have session ID here)
-    // This is a limitation - we show all recently loaded personas
-    for (const session of Object.values(state)) {
-      for (const archetype of session.loadedPersonas || []) {
-        loaded.add(archetype);
+
+    if (sessionId) {
+      // Check only the specified session
+      const sessionState = state[sessionId];
+      if (sessionState) {
+        for (const archetype of sessionState.loadedPersonas || []) {
+          loaded.add(archetype);
+        }
+      }
+    } else {
+      // Check all sessions (less accurate, but fallback)
+      for (const session of Object.values(state)) {
+        for (const archetype of session.loadedPersonas || []) {
+          loaded.add(archetype);
+        }
       }
     }
   } catch {
@@ -253,17 +294,17 @@ function formatText(result: ListResult): string {
 }
 
 function main(): void {
-  const { scope, format } = parseArgs();
+  const { scope, format, session, includeKeywords } = parseArgs();
 
   let personas: PersonaInfo[] = [];
 
   // Collect personas based on scope
   if (scope === 'local' || scope === 'all') {
-    personas.push(...findPersonasInDir(LOCAL_SKILLS, 'local'));
+    personas.push(...findPersonasInDir(LOCAL_SKILLS, 'local', includeKeywords));
   }
 
   if (scope === 'user' || scope === 'all') {
-    const userPersonas = findPersonasInDir(USER_SKILLS, 'user');
+    const userPersonas = findPersonasInDir(USER_SKILLS, 'user', includeKeywords);
     // Filter out duplicates (local takes precedence)
     const localArchetypes = new Set(personas.map(p => p.archetype));
     for (const p of userPersonas) {
@@ -274,7 +315,7 @@ function main(): void {
   }
 
   // Enrich with loaded/autoLoad status
-  const loadedSet = getLoadedPersonas();
+  const loadedSet = getLoadedPersonas(session);
   const autoLoadSet = getAutoLoadPersonas();
 
   for (const p of personas) {

@@ -14,7 +14,7 @@ Load subject matter expert personas to get specialized assistance. Personas auto
 | `/assume-persona:status` | Show loaded personas and config |
 | `/assume-persona:clear <name?>` | Clear session state for persona(s) |
 | `/assume-persona:delete <name?>` | Permanently delete persona file(s) |
-| `/assume-persona:import <path>` | Import persona from file/URL |
+| `/assume-persona:import <path>` | Import persona from file/URL (with auto-repair/generation) |
 | `/assume-persona:audit <name?>` | Audit quality and offer improvements |
 | `/assume-persona:help` | Show help |
 
@@ -77,7 +77,7 @@ Local takes precedence over user.
 
 The plugin uses a session-aware loader script to prevent duplicate loading:
 
-1. **SessionStart hook**: Installs loader script, prunes stale state, loads auto-load personas
+1. **SessionStart hook**: Runs `restore-personas.ts` to load auto-load personas and restore any handoff state
 2. **SKILL.md dynamic context**: Invokes loader with session ID for deduplication
 3. **state.json**: Tracks loaded personas per session at `~/.claude/plugin-data/assume-persona/state.json`
-4. **SessionEnd hook**: Cleans up session state
+4. **SessionEnd hook**: Runs `save-handoff.ts` on clear (preserves state) or `cleanup-session.ts` otherwise

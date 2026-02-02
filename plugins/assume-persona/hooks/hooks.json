@@ -12,6 +12,16 @@
     ],
     "SessionEnd": [
       {
+        "matcher": "clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --experimental-strip-types --no-warnings \"${CLAUDE_PLUGIN_ROOT}/scripts/save-handoff.ts\""
+          }
+        ]
+      },
+      {
+        "matcher": "^(?!clear).*$",
         "hooks": [
           {
             "type": "command",
