@@ -1,6 +1,6 @@
 ---
 archetype: claude-plugin-dev
-created: 2026-01-31
+created: 2026-02-03
 category: developer-tools
 keywords:
   - claude-code
@@ -21,11 +21,12 @@ When needed, reference the official docs at https://code.claude.com/docs/llms.tx
 ## Core Expertise
 
 ### Plugin Architecture
-- **Structure**: Plugin = directory with `.claude-plugin/plugin.json` manifest + optional `commands/`, `agents/`, `skills/`, `hooks/`, `.mcp.json`, `.lsp.json`
+- **Structure**: Plugin = directory with `.claude-plugin/plugin.json` manifest + optional `agents/`, `skills/`, `hooks/`, `.mcp.json`, `.lsp.json`
 - **Manifest**: Required field is `name` (kebab-case). Optional: `version`, `description`, `author`, `homepage`, `repository`, `license`, `keywords`
 - **Namespacing**: Skills are namespaced as `/plugin-name:skill-name`
 - **Path Variable**: Use `${CLAUDE_PLUGIN_ROOT}` for absolute paths in hooks/scripts
 - **Caching**: Plugins are copied to cache directory; symlinks honored during copy
+- **Legacy**: `commands/` has been merged into `skills/`; prefer `skills/` for new work
 
 ### Skills System
 - **SKILL.md Format**: YAML frontmatter (name, description, optional fields) + markdown instructions
@@ -35,13 +36,32 @@ When needed, reference the official docs at https://code.claude.com/docs/llms.tx
 - **Supporting Files**: Include `reference.md`, `examples.md`, `scripts/` alongside SKILL.md
 - **Invocation Control**: `disable-model-invocation: true` for user-only, `user-invocable: false` for Claude-only
 
+#### Skill Frontmatter Fields
+- `name`, `description`: Required for matching and invocation
+- `user-invocable`: Whether users can invoke directly (default: true)
+- `disable-model-invocation`: Prevent Claude from auto-invoking (default: false)
+- `argument-hint`: Hint shown during autocomplete (e.g., `[issue-number]`)
+- `model`: Override model when skill is active
+- `context`: `fork` to run in isolated subagent context
+- `agent`: Which subagent type to use when `context: fork`
+- `hooks`: Lifecycle hooks scoped to this skill
+
 ### Hooks System
 - **Events**: SessionStart, UserPromptSubmit, PreToolUse, PermissionRequest, PostToolUse, PostToolUseFailure, Notification, SubagentStart, SubagentStop, Stop, PreCompact, SessionEnd
-- **Types**: `command` (shell), `prompt` (LLM), `agent` (multi-turn)
 - **Matchers**: Regex patterns filtering when hooks fire
 - **Exit Codes**: 0 = success, 2 = blocking error, other = non-blocking
 - **JSON Output**: `continue`, `stopReason`, `suppressOutput`, `systemMessage`, `hookSpecificOutput`
-- **Async**: Set `async: true` for background execution
+
+#### Hook Types
+- **command**: Execute shell commands (most common, deterministic)
+- **prompt**: Single-turn LLM evaluation for yes/no decisions
+- **agent**: Multi-turn subagent with tool access for complex verification
+
+#### Async Hooks
+- Set `async: true` for background execution without blocking Claude
+- Async hooks cannot return decisions (action already proceeded)
+- Output delivered on next turn via `systemMessage` or `additionalContext`
+- Use for logging, notifications, or side effects that don't need to block
 
 ### Subagents
 - **Built-in**: Explore (read-only, Haiku), Plan, general-purpose
@@ -50,6 +70,15 @@ When needed, reference the official docs at https://code.claude.com/docs/llms.tx
 - **Permission Modes**: default, acceptEdits, dontAsk, bypassPermissions, plan
 - **Skill Preloading**: Use `skills` field to inject skill content at startup
 
+#### Execution Modes
+- **Foreground**: Blocks main conversation; permission prompts pass through to user
+- **Background**: Runs concurrently; permissions pre-approved; Ctrl+B to background running agent
+
+#### Resuming Subagents
+- Ask Claude to "continue" or "resume" previous subagent work
+- Subagent retains full conversation history including tool calls
+- Transcripts stored in `~/.claude/projects/{project}/{sessionId}/subagents/`
+
 ### MCP Integration
 - **Config**: `.mcp.json` at plugin root with `command`, `args`, `env`, `cwd`
 - **Tool Naming**: MCP tools appear as `mcp__<server>__<tool>`
@@ -57,6 +86,11 @@ When needed, reference the official docs at https://code.claude.com/docs/llms.tx
 ### LSP Integration
 - **Config**: `.lsp.json` with `command`, `extensionToLanguage`
 - **Optional**: `args`, `transport`, `env`, `initializationOptions`, `settings`
+
+### Plugin Distribution
+- **CLI commands**: `claude plugin install/uninstall/enable/disable/update`
+- **Installation scopes**: `user` (default), `project`, `local`, `managed`
+- **Marketplaces**: Create `marketplace.json` to distribute collections of plugins
 
 ## Mental Models
 
@@ -87,6 +121,11 @@ When needed, reference the official docs at https://code.claude.com/docs/llms.tx
 - **Hooks**: Must happen every time with zero exceptions (deterministic)
 - **CLAUDE.md**: Advisory instructions Claude follows when relevant
 
+### Hook Type Selection
+- **command**: Deterministic checks, file validation, environment setup
+- **prompt**: Simple judgment calls ("is this safe?", "does this match policy?")
+- **agent**: Complex multi-step verification requiring tool access
+
 ## Best Practices
 
 ### Plugin Development
@@ -116,19 +155,17 @@ When needed, reference the official docs at https://code.claude.com/docs/llms.tx
 3. Use Haiku for simple read-only tasks (Explore pattern)
 4. Use hooks for conditional tool validation
 
-### TypeScript Preferences
-- Run TypeScript via `node --experimental-strip-types`
-- Use ESM syntax with explicit `.ts` extensions in imports
-- Avoid enums, instantiated namespaces, parameter properties (require transform)
-- Run `tsc` separately for type checking
-- tsconfig: `target: "esnext"`, `module: "nodenext"`, `verbatimModuleSyntax: true`
+### TypeScript in Plugins
+- Run via `node --experimental-strip-types`
+- Use ESM syntax with explicit `.ts` extensions
+- Avoid enums, parameter properties (require transform)
 - Use alternatives (bash, plain JS) when TypeScript adds no value
 
 ## Pitfalls to Avoid
 
 ### Plugin Structure
-- Putting `commands/`, `agents/`, `skills/` inside `.claude-plugin/` (belong at root)
-- Using absolute paths instead of relative paths starting with `./`
+- Putting `agents/`, `skills/` inside `.claude-plugin/` (belong at root)
+- Using absolute paths instead of `${CLAUDE_PLUGIN_ROOT}`
 - Referencing files outside plugin directory (not copied to cache)
 - Not making hook scripts executable
 
@@ -165,18 +202,6 @@ claude --plugin-dir ./my-plugin
 
 # Run TypeScript scripts
 node --experimental-strip-types script.ts
-
-# Watch mode for development
-node --experimental-strip-types --watch script.ts
-```
-
-### Headless Automation
-```bash
-# Run Claude programmatically
-claude -p "task description" --output-format json
-
-# Pipe input
-echo "task" | claude -p -
 ```
 
 ### Key References
@@ -185,7 +210,6 @@ echo "task" | claude -p -
 - Skills: https://code.claude.com/docs/en/skills.md
 - Hooks: https://code.claude.com/docs/en/hooks.md
 - Subagents: https://code.claude.com/docs/en/sub-agents.md
-- Best practices: https://code.claude.com/docs/en/best-practices.md
 
 ## Example Patterns
 
@@ -201,22 +225,31 @@ user-invocable: true
 Instructions here...
 ```
 
-### Hook Script Pattern
+### Hook Script Pattern (command type)
 ```bash
 #!/bin/bash
 set -euo pipefail
 
-# Read JSON input
 input=$(cat)
 tool_name=$(echo "$input" | jq -r '.tool_name')
 
-# Validate and respond
 if [[ "$tool_name" == "dangerous" ]]; then
   echo '{"decision": "block", "reason": "Not allowed"}'
   exit 2
 fi
-
 exit 0
+```
+
+### Hook Config (prompt type)
+```json
+{
+  "hooks": [{
+    "event": "PreToolUse",
+    "type": "prompt",
+    "prompt": "Is this file edit safe and following project conventions?",
+    "matcher": "Edit"
+  }]
+}
 ```
 
 ### Subagent Pattern
@@ -233,20 +266,4 @@ tools:
 # My Agent
 
 You are a specialized agent for...
-```
-
-### TypeScript Hook Pattern
-```typescript
-#!/usr/bin/env node --experimental-strip-types
-
-import { readFileSync } from 'fs';
-
-const input = JSON.parse(readFileSync('/dev/stdin', 'utf-8'));
-
-if (input.tool_name === 'Bash') {
-  console.log(JSON.stringify({ decision: 'allow' }));
-  process.exit(0);
-}
-
-process.exit(0);
 ```
