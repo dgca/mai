@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "mai",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "Collection of Claude Code plugins by @dgca",
   "owner": {
     "name": "Dan Cortes"
@@ -11,6 +11,12 @@
       "name": "assume-persona",
       "description": "Assume subject matter expert personas for better domain-specific assistance",
       "source": "./plugins/assume-persona",
+      "category": "productivity"
+    },
+    {
+      "name": "lfg",
+      "description": "Break down large work into manageable pieces and execute efficiently with subagents",
+      "source": "./plugins/lfg",
       "category": "productivity"
     }
   ]

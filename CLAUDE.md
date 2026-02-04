@@ -9,7 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Current components:
 
 1. **assume-persona plugin** (`/plugins/assume-persona/`) - Manages subject matter expert personas for domain-specific assistance
-2. **create-skill skill** (`/.claude/skills/create-skill/`) - Guidance for creating effective Claude Code skills
+2. **lfg plugin** (`/plugins/lfg/`) - Break down large work into manageable pieces and execute with subagents
+3. **create-skill skill** (`/.claude/skills/create-skill/`) - Guidance for creating effective Claude Code skills
 
 This repo will grow over time as new plugins and skills are added.
 
@@ -27,11 +28,18 @@ No test suite exists yet.
 
 ## Versioning
 
-Version must be updated in all three locations:
+Plugins are versioned independently. Each component has its own version:
 
-- `package.json`
-- `.claude-plugin/marketplace.json`
-- `plugins/<plugin-name>/.claude-plugin/plugin.json` (for each plugin being released)
+| Component | File | When to Bump |
+|-----------|------|--------------|
+| Marketplace | `.claude-plugin/marketplace.json` | Adding/removing plugins from catalog |
+| Each plugin | `plugins/<name>/.claude-plugin/plugin.json` | Changes to that specific plugin |
+| Root package.json | `package.json` | Only if publishing npm packages (currently unused) |
+
+**Guidelines:**
+- Bump marketplace version (minor) when adding a new plugin to the catalog
+- Bump plugin version independently when that plugin changes
+- Use semver: MAJOR (breaking), MINOR (new features), PATCH (fixes)
 
 ## Maintenance
 

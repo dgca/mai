@@ -1,13 +1,19 @@
 {
   "name": "lfg",
   "description": "Let's Fucking Go - Break down large work into manageable pieces and execute efficiently with subagents.",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "author": {
     "name": "Dan Cortes"
   },
   "repository": "https://github.com/dgca/mai",
   "license": "MIT",
-  "keywords": ["planning", "execution", "subagents", "project-management", "workflow"],
+  "keywords": [
+    "planning",
+    "execution",
+    "subagents",
+    "project-management",
+    "workflow"
+  ],
   "commands": [
     "./skills/execute/execute.md",
     "./skills/help/help.md",

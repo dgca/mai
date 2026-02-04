@@ -92,6 +92,12 @@ When needed, reference the official docs at https://code.claude.com/docs/llms.tx
 - **Installation scopes**: `user` (default), `project`, `local`, `managed`
 - **Marketplaces**: Create `marketplace.json` to distribute collections of plugins
 
+### Versioning Strategy
+- **Marketplace version**: Bump when adding/removing plugins from the catalog (minor version for additions)
+- **Plugin versions**: Version each plugin independently based on its own changes
+- **Semver**: MAJOR (breaking changes), MINOR (new features), PATCH (bug fixes)
+- **Independence**: A bug fix in plugin A doesn't require bumping plugin B's version
+
 ## Mental Models
 
 ### Feature Selection Framework
