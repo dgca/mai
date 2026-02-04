@@ -1,0 +1,7 @@
+{
+  "approval_level": "checkpoint",
+  "research_depth": "light",
+  "model_profile": "balanced",
+  "auto_commit": true,
+  "parallel_exploration": true
+}
