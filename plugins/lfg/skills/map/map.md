@@ -1,7 +1,6 @@
 ---
 description: Map the codebase structure using parallel Explorer agents. Creates STACK.md, ARCHITECTURE.md, PATTERNS.md, and CONCERNS.md in .lfg/codebase/.
 user-invocable: true
-disable-model-invocation: true
 ---
 
 # LFG Map

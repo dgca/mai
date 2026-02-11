@@ -1,7 +1,7 @@
 {
   "name": "lfg",
   "description": "Let's Fucking Go - Break down large work into manageable pieces and execute efficiently with subagents.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "author": {
     "name": "Dan Cortes"
   },
