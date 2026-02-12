@@ -16,6 +16,7 @@ Load subject matter expert personas to get specialized assistance.
 | `/assume-persona:show <name?>` | Preview a persona without activating |
 | `/assume-persona:status` | Show currently loaded personas |
 | `/assume-persona:clear [name?]` | Clear persona(s) from session state |
+| `/assume-persona:restore` | Restore personas from previous session |
 | `/assume-persona:audit <name?>` | Audit quality and suggest improvements |
 | `/assume-persona:recommend` | Suggest personas for current context |
 | `/assume-persona:import <path>` | Import persona from file/URL |
@@ -49,7 +50,8 @@ Personas are tracked per session:
 - Loaded personas won't re-inject content if loaded again (deduplication)
 - Use `/assume-persona:status` to see what's loaded
 - Use `/assume-persona:clear` to allow re-loading
-- Session state persists across `/sessions` resume
+- Use `/assume-persona:restore` to reload personas from a previous session
+- Auto-restore triggers on phrases like "resuming session", "continuing work"
 
 ### Storage Locations
 

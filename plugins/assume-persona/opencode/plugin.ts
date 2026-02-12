@@ -326,6 +326,63 @@ ${content}
       }),
 
       /**
+       * Restore personas from session state or handoff
+       */
+      persona_restore: tool({
+        description:
+          "Restore previously loaded personas from session state. Use this when resuming a session to reload expertise context.",
+        args: {},
+        async execute(args, context) {
+          const sessionId = currentSessionId;
+          if (!sessionId) {
+            return "No active session.";
+          }
+
+          // Get personas to restore from state
+          const loadedPersonas = getLoadedPersonas(sessionId);
+
+          if (loadedPersonas.length === 0) {
+            return `No personas to restore.
+
+Use \`persona_list\` or \`/assume-persona:list\` to see available personas.`;
+          }
+
+          // Load each persona and collect content
+          const results: Array<{ archetype: string; content: string }> = [];
+          const failed: string[] = [];
+
+          for (const archetype of loadedPersonas) {
+            const content = readPersonaContent(archetype, cwd);
+            if (content) {
+              results.push({ archetype, content });
+            } else {
+              failed.push(archetype);
+            }
+          }
+
+          if (results.length === 0) {
+            return `Failed to restore personas: ${failed.join(", ")}
+
+The persona files may have been deleted. Use \`persona_clear\` to reset session state.`;
+          }
+
+          const lines = [`# Restored ${results.length} Persona(s)\n`];
+
+          for (const { archetype, content } of results) {
+            lines.push(`## ${archetype}\n`);
+            lines.push(content);
+            lines.push("\n---\n");
+          }
+
+          if (failed.length > 0) {
+            lines.push(`\n**Failed to restore**: ${failed.join(", ")}`);
+          }
+
+          return lines.join("\n");
+        },
+      }),
+
+      /**
        * Check if a persona exists
        */
       persona_exists: tool({
