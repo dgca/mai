@@ -129,7 +129,9 @@ Note: Only `name` and `description` are required in frontmatter. The description
 
 ## Step 9: Load the persona
 
-Load the persona into the current session (display the persona.md content to inject into context).
+For all save options (including "Session only"):
+1. Display the full persona.md content to inject it into context
+2. Use the persona_load tool to mark it as loaded (for saved personas) or just output the content directly (for session-only)
 
 Confirm:
 > "Persona '<archetype>' created and activated.
