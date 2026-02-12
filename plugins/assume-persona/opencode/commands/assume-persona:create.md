@@ -1,28 +1,44 @@
 ---
-description: Create a new assume-persona skill
-subtask: false
+description: Research and create a new subject matter expert persona
+subtask: true
 ---
 
 # Create Persona: $ARGUMENTS
 
 You are helping create a new expert persona called "$ARGUMENTS".
 
-## Step 1: Check if it exists
+## Step 1: Parse and validate archetype
 
-First, check if this persona already exists:
+- Normalize to kebab-case (e.g., "Rust Systems Programmer" → "rust-systems-programmer")
+- If empty, show error: "Usage: /assume-persona:create <archetype>"
 
-!`ls -d ~/.claude/skills/assume-persona--$1/ 2>/dev/null && echo "EXISTS" || echo "NOT_FOUND"`
+## Step 2: Check if it exists
 
-If it exists, ask the user if they want to overwrite it or abort.
+Check both local and user locations:
 
-## Step 2: Gather context
+!`ls -d .claude/skills/assume-persona--$1/ ~/.claude/skills/assume-persona--$1/ 2>/dev/null | head -1`
+
+If found, tell the user:
+> "Persona '$ARGUMENTS' already exists. Use `/assume-persona:audit $ARGUMENTS` to review or `/assume-persona:load $ARGUMENTS` to activate."
+
+Stop here if exists.
+
+## Step 3: Gather context
 
 Ask the user:
-> "What context should I know about this persona? (Tech stack, conventions, constraints, specific focus areas?) You can skip this if you want me to research generally."
+> "What context should I know about this persona?
+>
+> Examples:
+> - Tech stack, frameworks, or tools you use
+> - Team conventions or constraints
+> - Specific domains or problem types
+> - Anything else that would make this persona more useful
+>
+> (Press enter to skip if the name is self-explanatory)"
 
 Wait for their response before proceeding.
 
-## Step 3: Research the domain
+## Step 4: Research the domain
 
 Use web searches to research what makes an effective expert in the "$ARGUMENTS" domain:
 - Core skills and competencies
@@ -33,116 +49,88 @@ Use web searches to research what makes an effective expert in the "$ARGUMENTS" 
 - Current trends and recent changes
 
 Search for things like:
-- "$ARGUMENTS best practices 2025"
+- "$ARGUMENTS best practices 2026"
 - "$ARGUMENTS expert skills"
 - "$ARGUMENTS common mistakes"
 - "$ARGUMENTS tools comparison"
 
-## Step 4: Create the persona
+Focus on practical knowledge that helps write better code and make better decisions.
+
+## Step 5: Create the persona
 
 Based on your research and the user's context, create a persona.md file with this exact structure:
 
 ```markdown
 ---
-archetype: [persona-name]
-created: [YYYY-MM-DD]
-category: [domain-category]
+archetype: <archetype>
+created: <YYYY-MM-DD>
+category: <category>
 keywords:
-  - [keyword1]
-  - [keyword2]
-  - [etc, 8-12 keywords]
+  - <keyword1>
+  - <keyword2>
 ---
 
-# [Title] - [Specialty]
+# <Archetype Title>
 
-[2-3 sentence role description]
+You are an expert <role description>...
 
 ## Core Expertise
-
-### [Area 1]
-- [bullet points]
-
-### [Area 2]
-- [bullet points]
-
-[3-4 areas total]
+<distilled from research>
 
 ## Mental Models
-
-### [Model 1]
-[Description and application]
-
-### [Model 2]
-[Description and application]
-
-[3-4 mental models]
+<distilled from research>
 
 ## Best Practices
-
-### [Category 1]
-- [practices with code examples where relevant]
-
-### [Category 2]
-- [practices]
+<distilled from research>
 
 ## Pitfalls to Avoid
-
-### [Pitfall Category]
-| Cause | Solution |
-|-------|----------|
-| [issue] | [fix] |
-
-### Anti-Patterns
-- [list of things to avoid]
+<distilled from research>
 
 ## Tools & Technologies
-
-### [Tool Category]
-| Tool | Best For | Trade-offs |
-|------|----------|------------|
-| [tool] | [use case] | [considerations] |
-
-## Decision Framework
-
-| Question | Recommendation |
-|----------|----------------|
-| [common decision] | [guidance] |
+<distilled from research>
 ```
 
-Target length: 150-300 lines. Be specific and actionable, not generic.
+Target length: 200-400 lines. Be specific and actionable, not generic.
 
-## Step 5: Create the SKILL.md
+## Step 6: Generate SKILL.md description
 
-Create a SKILL.md file with auto-invocation keywords:
+Create a description for SKILL.md that captures when to auto-invoke this persona:
+- Include specific keywords, technologies, tools, and scenarios
+- Keep it concise but comprehensive for matching
+- Example: "TypeScript fullstack persona. Invoke when discussing: React, Next.js, Node.js, TypeScript, API design, frontend architecture, server-side rendering."
 
+## Step 7: Ask where to save
+
+Ask the user:
+> "Where should I save this persona?
+>
+> 1. **Local** (.claude/skills/assume-persona--<archetype>/) - Specific to this project
+> 2. **User** (~/.claude/skills/assume-persona--<archetype>/) - Available globally
+> 3. **Session only** - Don't save, just apply now"
+
+## Step 8: Save the files (unless session-only)
+
+If user chose Local or User, create the directory and save both files:
+- `[location]/assume-persona--$ARGUMENTS/persona.md`
+- `[location]/assume-persona--$ARGUMENTS/SKILL.md`
+
+The SKILL.md should contain:
 ```markdown
 ---
 name: assume-persona--[persona-name]
 description: |
-  [One line description]. Invoke when discussing: [comma-separated list of 15-25 specific keywords and phrases that should trigger this persona].
+  [The description from step 6]
 user-invocable: false
 ---
 
-Load the [persona-name] persona from ~/.claude/skills/assume-persona--[persona-name]/persona.md
+Load the [persona-name] persona from [location]/assume-persona--[persona-name]/persona.md
 ```
 
-The keywords should be specific enough to avoid false positives but comprehensive enough to catch relevant discussions.
+## Step 9: Load the persona
 
-## Step 6: Ask where to save
+Load the persona into the current session (display the persona.md content to inject into context).
 
-Ask the user:
-> "Where should I save this persona?
-> 1. **User-global** (~/.claude/skills/) - Available in all projects
-> 2. **Project-local** (.claude/skills/) - Only this project
+Confirm:
+> "Persona '<archetype>' created and activated.
 >
-> (User-global is recommended for general-purpose personas)"
-
-## Step 7: Save the files
-
-Based on their choice, create the directory and save both files:
-- `[location]/assume-persona--$ARGUMENTS/persona.md`
-- `[location]/assume-persona--$ARGUMENTS/SKILL.md`
-
-## Step 8: Confirm and offer to load
-
-Tell the user the persona was created and ask if they'd like you to load it now (read the persona.md file to adopt that expertise for the current session).
+> The persona will auto-invoke when relevant topics are detected."

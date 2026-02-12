@@ -1,50 +1,76 @@
 ---
-description: Audit an existing persona for staleness and improvements
-allowed-tools: WebFetch, Read, Glob, Edit, Write, Bash
+description: Audit persona for quality and offer improvements
+subtask: true
 ---
 
-# Persona Audit Command
+# Audit Persona
 
-Audit an existing persona skill for structural compliance, content staleness, and improvement opportunities.
+Audit a persona for structure, content quality, and SKILL.md description quality, then offer to apply improvements.
 
 ## Arguments
 
-$ARGUMENTS - The persona archetype name (e.g., "qa-engineer", "devops-engineer")
+`$ARGUMENTS` = optional specific archetype to audit
+
+## Storage Locations
+
+Personas are stored as skills in:
+
+1. **Local/project**: `.claude/skills/assume-persona--<archetype>/`
+2. **User**: `~/.claude/skills/assume-persona--<archetype>/`
+
+Each persona skill contains:
+- `SKILL.md` - Metadata and loader (description quality matters for auto-invocation)
+- `persona.md` - Full persona content
 
 ## Instructions
 
-### 1. Locate the Persona
+### 1. Parse Arguments
 
-Find the persona files at `~/.claude/skills/assume-persona--{archetype}/`:
-- `persona.md` - Main persona content (150-300 lines target)
-- `SKILL.md` - Auto-invocation configuration
+- If archetype provided in `$ARGUMENTS`, audit that one
+- If empty, list available personas and ask user to pick:
 
-If the persona doesn't exist, inform the user and suggest using `/assume-persona:create` instead.
+  !`for dir in ~/.claude/skills/assume-persona--*/ .claude/skills/assume-persona--*/ 2>/dev/null; do [ -d "$dir" ] || continue; name=$(basename "$dir" | sed 's/assume-persona--//'); scope="user"; [[ "$dir" == .claude/* ]] && scope="local"; echo "- $name ($scope)"; done`
 
-### 2. Structural Audit
+  Ask: "Which persona would you like to audit?"
 
-Check these requirements and note any violations:
+### 2. Locate the Persona
+
+Check both locations (local takes precedence):
+- `.claude/skills/assume-persona--<archetype>/`
+- `~/.claude/skills/assume-persona--<archetype>/`
+
+If not found:
+```
+Persona '<archetype>' not found.
+
+Create it with: /assume-persona:create <archetype>
+```
+Stop here.
+
+### 3. Structural Audit
+
+Read both `persona.md` and `SKILL.md` and check these requirements:
 
 **persona.md requirements:**
 - [ ] Has YAML frontmatter with: archetype, created, category, keywords
-- [ ] Line count between 150-300 lines (current: X lines)
+- [ ] Line count between 200-400 lines (current: X lines)
 - [ ] Contains required sections:
-  - Core Expertise (what they know deeply)
-  - Mental Models (how they think about problems)
-  - Best Practices (what they recommend)
-  - Pitfalls to Avoid (what they warn against)
-  - Tools & Technologies (what they use, with comparison tables)
-  - Decision Framework (quick reference table)
+  - Role description (opening paragraph)
+  - Core Expertise
+  - Mental Models
+  - Best Practices
+  - Pitfalls to Avoid
+  - Tools & Technologies
 - [ ] Uses tables for comparisons and quick-reference content
 - [ ] Code examples use generic patterns, not project-specific code
 - [ ] Created date is present (for staleness calculation)
 
 **SKILL.md requirements:**
-- [ ] Has frontmatter with: name, description, user-invocable: false
+- [ ] Has frontmatter with: name, description
 - [ ] Description contains comma-separated trigger keywords
 - [ ] Keywords cover the domain comprehensively
 
-### 3. Content Staleness Check
+### 4. Content Staleness Check
 
 Calculate persona age from the `created` frontmatter date.
 
@@ -59,75 +85,72 @@ Use WebFetch to research:
 - Recent blog posts or articles about the domain (search for "{domain} best practices 2026")
 - Changelog or release notes for primary tools
 
-### 4. Generate Audit Report
+### 5. Generate Audit Report
 
 Present findings in this format:
 
 ```
-## Persona Audit: {archetype}
+## Persona Audit: <archetype>
+**Location**: local/user
 
-### Summary
-- **Age**: X days/months
-- **Line Count**: X lines (target: 150-300)
-- **Structural Score**: X/10
-- **Staleness Risk**: Low/Medium/High
+### Structure (persona.md)
+| Check | Status | Details |
+|-------|--------|---------|
+| Age | ✓ Fresh | Created 2 weeks ago |
+| Sections | ⚠ Partial | Missing: Mental Models |
+| Length | ✓ Good | 245 lines |
+| Frontmatter | ✓ Complete | All fields present |
 
-### Structural Issues
-[List any violations from the structural audit]
+### Auto-Invocation (SKILL.md)
+| Check | Status | Details |
+|-------|--------|---------|
+| Found | ✓/✗ | Yes/No |
+| Description | ✓ Good / ⚠ Short / ✗ Missing | X chars |
+| Keywords | ✓/⚠ | Has tech keywords / No specific keywords |
 
-### Content Staleness Findings
-[List any outdated information discovered]
+### Content Analysis
+<assessment of content quality and actionability>
 
-### Recommended Improvements
-1. [Specific, actionable improvement]
-2. [Another improvement]
+### Suggested Improvements
+1. <improvement 1>
+2. <improvement 2>
 ...
 
 ### Keywords Coverage
-Current keywords: [list]
+Current keywords: [list from frontmatter]
 Suggested additions: [list any missing relevant keywords]
 ```
 
-### 5. Offer to Apply Updates
+### 6. Offer to Apply Updates
 
-After presenting the report, ask the user:
+If improvements are needed, ask:
 
-"Would you like me to apply these improvements? I can:
-1. Fix structural issues only
-2. Update stale content with current information
-3. Apply all improvements
-4. Skip updates"
+```
+Apply improvements?
+1. All of them
+2. Let me choose specific ones
+3. None - keep as is
+```
 
-If the user chooses to update:
+If user wants to choose specific ones, let them specify (e.g., "1, 3, 5" or "all except 2").
+
+### 7. Apply Approved Changes
+
 - Make edits incrementally, explaining each change
 - Update the `created` date to today if content was refreshed
 - Preserve the persona's voice and structure
-- Keep within the 150-300 line target
+- Keep within the 200-400 line target
+- Update SKILL.md description if keywords need improvement
 
-## Example Usage
+### 8. Confirm
 
-User runs: `/assume-persona:audit qa-engineer`
-
-Output:
 ```
-## Persona Audit: qa-engineer
-
-### Summary
-- **Age**: 1 day
-- **Line Count**: 166 lines (target: 150-300) ✓
-- **Structural Score**: 10/10
-- **Staleness Risk**: Low
-
-### Structural Issues
-None found.
-
-### Content Staleness Findings
-- Persona was just created, no staleness detected.
-
-### Recommended Improvements
-None at this time.
-
-### Keywords Coverage
-Current: testing, qa, quality-assurance, e2e, playwright, cypress, jest, accessibility, wcag, visual-regression
-Suggested additions: vitest, msw, storybook, component-testing
+Persona '<archetype>' updated.
 ```
+
+## Notes
+
+- If no improvements are needed, skip the "Apply improvements?" prompt
+- User must explicitly approve changes before any edits are made
+- The `created` date updates to reflect the edit
+- Description quality is important for auto-invocation matching

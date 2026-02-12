@@ -116,6 +116,33 @@ export const AssumePersonaPlugin: Plugin = async (ctx) => {
     },
 
     /**
+     * Intercept skill tool to track persona loading via auto-invocation
+     * When OpenCode's skill system loads an assume-persona skill,
+     * we mark it as loaded in session state for deduplication and compaction
+     */
+    "tool.execute.after": async (input, output) => {
+      // Only intercept the skill tool
+      if (input.tool !== "skill") return;
+
+      // Check if this is an assume-persona skill
+      const skillName = input.args?.name as string;
+      if (!skillName?.startsWith("assume-persona--")) return;
+
+      // Extract archetype from skill name
+      const archetype = skillName.replace("assume-persona--", "");
+
+      // Get session ID (may not be available in this context)
+      const sessionId = currentSessionId;
+      if (!sessionId) return;
+
+      // Check if already loaded to avoid duplicate marking
+      if (isPersonaLoaded(sessionId, archetype)) return;
+
+      // Mark as loaded in session state
+      markPersonasLoaded(sessionId, [archetype]);
+    },
+
+    /**
      * Compaction hook - inject loaded personas into compaction context
      * This ensures persona content survives context compaction
      */

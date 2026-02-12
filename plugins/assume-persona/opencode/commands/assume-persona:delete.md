@@ -1,71 +1,91 @@
 ---
-description: Permanently delete a persona
+description: Permanently delete persona skill directories from storage
+subtask: true
 ---
 
-# Delete Persona: $ARGUMENTS
+# Delete Persona
 
-Permanently delete a persona skill directory. This cannot be undone.
+Permanently delete persona skill directories from storage. Unlike `clear` which only clears session state, this removes the skill directories entirely.
+
+## Arguments
+
+`$ARGUMENTS` = optional archetype name(s) to delete (space-separated)
+
+## Storage Locations
+
+Personas are stored as skills in:
+
+- **Local**: `.claude/skills/assume-persona--<archetype>/`
+- **User**: `~/.claude/skills/assume-persona--<archetype>/`
 
 ## Instructions
 
-1. **If no archetype provided in `$ARGUMENTS`**, list available personas and ask user to pick:
+### 1. List Available Personas
 
-   ```bash
-   ls -d ~/.claude/skills/assume-persona--*/ .claude/skills/assume-persona--*/ 2>/dev/null | while read dir; do
-     name=$(basename "$dir" | sed 's/assume-persona--//')
-     scope="user"
-     [[ "$dir" == .claude/* ]] && scope="local"
-     echo "- $name ($scope)"
-   done
-   ```
+!`for dir in ~/.claude/skills/assume-persona--*/ .claude/skills/assume-persona--*/ 2>/dev/null; do [ -d "$dir" ] || continue; name=$(basename "$dir" | sed 's/assume-persona--//'); scope="user"; [[ "$dir" == .claude/* ]] && scope="local"; echo "- $name ($scope)"; done`
 
-   Ask: "Which persona would you like to delete?"
+If no personas found:
+```
+No personas found to delete.
+```
+Stop here.
 
-2. **Locate the persona** (local takes precedence over user):
+### 2. Select Personas to Delete
 
-   - Check `.claude/skills/assume-persona--$ARGUMENTS/` first
-   - Then check `~/.claude/skills/assume-persona--$ARGUMENTS/`
+If `$ARGUMENTS` is empty, ask user:
+```
+Which persona(s) would you like to delete? (You can specify multiple, space-separated)
+```
 
-3. **If not found**:
-   ```
-   Persona '$ARGUMENTS' not found.
+### 3. Validate Each Archetype
 
-   List available: /assume-persona:list
-   ```
-   Stop here.
+For each archetype to delete:
+- Check if it exists in local or user location
+- If not found, report and continue to next:
+  ```
+  Persona '<archetype>' not found.
+  ```
 
-4. **Show confirmation** (this is destructive):
+### 4. Show Confirmation (Destructive Operation)
 
-   ```
-   Delete persona '$ARGUMENTS'?
+```
+Delete the following persona(s)?
 
-   Location: [full path to the skill directory]
+| Archetype | Scope | Path |
+|-----------|-------|------|
+| react-expert | local | .claude/skills/assume-persona--react-expert/ |
 
-   This will permanently delete:
-   - persona.md
-   - SKILL.md
+This action is permanent and cannot be undone.
 
-   This action cannot be undone. Confirm? (yes/no)
-   ```
+Confirm deletion? (yes/no)
+```
 
-   **Wait for explicit confirmation before proceeding.**
+Wait for explicit user confirmation. If not confirmed, stop here.
 
-5. **If confirmed**, delete the skill directory:
+### 5. Delete Each Confirmed Persona
 
-   ```bash
-   rm -rf "[path to skill directory]"
-   ```
+For each confirmed persona:
 
-6. **Confirm deletion**:
-   ```
-   Persona '$ARGUMENTS' deleted.
+```bash
+rm -rf "[path to skill directory]"
+```
 
-   Run /assume-persona:list to see remaining personas.
-   ```
+Also clear from session state using persona_clear tool if the persona was loaded.
+
+### 6. Confirm Deletion
+
+```
+Deleted:
+- react-expert (local)
+
+Note: If this persona was loaded, it has been removed from session state.
+Run /assume-persona:list to see remaining personas.
+```
 
 ## Notes
 
-- This permanently deletes the persona files
+- This permanently deletes skill directories - use with caution
 - Local personas are checked first (higher precedence)
+- If a persona exists in both scopes, only the higher-precedence one is deleted
+- Use `/assume-persona:clear` to clear session state without deleting files
 - Use `/assume-persona:show` to preview before deleting
-- There is no undo - consider backing up important personas

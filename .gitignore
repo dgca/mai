@@ -1,2 +1,6 @@
 # Ignore all local files (follows Claude Code convention)
 *.local.*
+
+# Dependencies
+node_modules/
+package-lock.json

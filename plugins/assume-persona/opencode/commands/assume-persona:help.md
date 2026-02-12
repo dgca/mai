@@ -1,70 +1,67 @@
 ---
-description: Show available persona commands and usage guide
+description: Show available commands and usage guide
 ---
 
-## Persona Commands
+Output the following help content to the user:
 
-Load subject matter expert personas to get specialized assistance.
+## Assume Persona Plugin
+
+Load subject matter expert personas to get specialized assistance. Personas auto-invoke based on conversation topics.
 
 ### Commands
 
 | Command | Description |
 |---------|-------------|
-| `/assume-persona:list` | List all available personas |
-| `/assume-persona:create <name>` | Research and create a new persona |
-| `/assume-persona:load <name?>` | Load and activate a persona |
-| `/assume-persona:show <name?>` | Preview a persona without activating |
-| `/assume-persona:status` | Show currently loaded personas |
-| `/assume-persona:clear [name?]` | Clear persona(s) from session state |
-| `/assume-persona:restore` | Restore personas from previous session |
-| `/assume-persona:audit <name?>` | Audit quality and suggest improvements |
-| `/assume-persona:recommend` | Suggest personas for current context |
-| `/assume-persona:import <path>` | Import persona from file/URL |
-| `/assume-persona:delete <name?>` | Permanently delete a persona |
-| `/assume-persona:help` | Show this help |
+| /assume-persona:create \<name> | Research and create a new persona |
+| /assume-persona:load \<name?> | Load and activate a persona |
+| /assume-persona:list \<category?> | List all available personas |
+| /assume-persona:recommend | Suggest personas for current context |
+| /assume-persona:show \<name?> | Preview a persona without activating |
+| /assume-persona:status | Show loaded personas and config |
+| /assume-persona:clear \<name?> | Clear session state for persona(s) |
+| /assume-persona:delete \<name?> | Permanently delete persona file(s) |
+| /assume-persona:import \<path> | Import persona from file/URL |
+| /assume-persona:audit \<name?> | Audit quality and offer improvements |
+| /assume-persona:help | Show this help |
 
-`<arg>` = required, `<arg?>` = optional (shows list to choose from)
+\<arg> = required, \<arg?> = optional (shows list to choose from)
 
 ### Quick Start
 
 1. List available personas:
-   `/assume-persona:list`
+   /assume-persona:list
 
 2. Load a persona:
-   `/assume-persona:load accessibility-expert`
+   /assume-persona:load accessibility-expert
 
-3. Create a new one:
-   `/assume-persona:create rust-systems-programmer`
+3. Check what's loaded:
+   /assume-persona:status
 
-### How It Works
+4. Clear session state:
+   /assume-persona:clear
 
-Personas are stored as skills in `~/.claude/skills/assume-persona--<name>/`:
-- `SKILL.md` - Metadata and auto-invocation description
-- `persona.md` - Full persona content
+### Features
 
-When you load a persona, its content is read into the conversation context, giving you access to that expertise.
+- **Auto-invocation**: Personas automatically load when relevant topics are detected
+- **Session deduplication**: Each persona loads once per session (no duplicates)
+- **Multiple personas**: Load several at once with `/assume-persona:load persona1 persona2`
+- **Quality auditing**: Check persona freshness and completeness
 
-### Session State
+### How Auto-Invocation Works
 
-Personas are tracked per session:
-- Loaded personas won't re-inject content if loaded again (deduplication)
-- Use `/assume-persona:status` to see what's loaded
-- Use `/assume-persona:clear` to allow re-loading
-- Use `/assume-persona:restore` to reload personas from a previous session
-- Auto-restore triggers on phrases like "resuming session", "continuing work"
+Personas are stored as skills with descriptions that enable auto-invocation:
+
+1. When you discuss a topic (e.g., "security vulnerabilities")
+2. The topic is matched against persona skill descriptions
+3. The relevant persona loads automatically (once per session)
+4. You get specialized expertise without manual loading
 
 ### Storage Locations
 
-1. **User-global**: `~/.claude/skills/assume-persona--<name>/`
-   - Available in all projects
+Personas are stored as skills (precedence order):
+1. Local: `.claude/skills/assume-persona--<archetype>/`
+2. User: `~/.claude/skills/assume-persona--<archetype>/`
 
-2. **Project-local**: `.claude/skills/assume-persona--<name>/`
-   - Only available in the current project
-   - Takes precedence over user-global
-
-### Tips
-
-- Load multiple personas for complex tasks that span domains
-- Use `/assume-persona:recommend` when unsure which persona would help
-- Run `/assume-persona:audit` periodically to keep personas current
-- Create project-local personas for team-specific conventions
+Each persona skill contains:
+- `SKILL.md` - Metadata and auto-invocation description
+- `persona.md` - Full persona content
