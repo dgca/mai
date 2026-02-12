@@ -25,12 +25,12 @@ Or from a local clone:
 ./plugins/assume-persona/opencode/install.sh
 ```
 
-**Note:** After installing, register the plugin in `~/.config/opencode/config.json`. See [OpenCode Differences](#opencode-differences) for behavioral differences.
+**Note:** After installing, register the plugin in `~/.config/opencode/config.json`. See [Platform Differences](#platform-differences) for behavioral differences.
 
-## Skills (Claude Code)
+## Commands
 
-| Skill | Description |
-|-------|-------------|
+| Command | Description |
+|---------|-------------|
 | `/assume-persona:create <name>` | Research and create a new persona |
 | `/assume-persona:load <name?>` | Load and activate a persona |
 | `/assume-persona:list <category?>` | List all available personas |
@@ -98,35 +98,17 @@ Each persona skill contains:
 
 Local takes precedence over user.
 
-## Commands (OpenCode)
+## Platform Differences
 
-| Command | Description |
-|---------|-------------|
-| `/assume-persona:list` | List all available personas |
-| `/assume-persona:create <name>` | Research and create a new persona |
-| `/assume-persona:load <name?>` | Load and activate a persona |
-| `/assume-persona:show <name?>` | Preview a persona without activating |
-| `/assume-persona:status` | Show currently loaded personas |
-| `/assume-persona:clear [name?]` | Clear persona(s) from session state |
-| `/assume-persona:audit <name?>` | Audit quality and suggest improvements |
-| `/assume-persona:recommend` | Suggest personas for current context |
-| `/assume-persona:import <path>` | Import persona from file/URL |
-| `/assume-persona:delete <name?>` | Permanently delete a persona |
-| `/assume-persona:help` | Show all commands |
+Both implementations are functionally equivalent and share the same persona format. Key differences:
 
-### OpenCode Differences
+| Aspect | Claude Code | OpenCode |
+|--------|-------------|----------|
+| Skill prefix | `assume-persona--*` | `persona-*` (reads both for compatibility) |
+| Post-compaction restore | Automatic (hooks) | Automatic (compaction hook) |
+| Implementation | Skills + bash scripts | TypeScript plugin |
 
-The OpenCode implementation shares the same persona format and most features, with a few behavioral differences:
-
-| Feature | Claude Code | OpenCode |
-|---------|-------------|----------|
-| Session tracking | Yes | Yes |
-| Deduplication | Per-session state | Per-session state |
-| Auto-invocation | Via skill descriptions | Via skill descriptions |
-| Post-compaction restore | Automatic | Automatic (via compaction hook) |
-| Persona format | `~/.claude/skills/assume-persona--*/` | Same (compatible) |
-
-The implementations are now functionally equivalent. Both track session state, deduplicate persona loading, and preserve persona content through context compaction.
+**Note:** OpenCode cannot use `assume-persona--` prefix because its skill system disallows `--` in directory names. OpenCode reads from both prefixes but creates new personas with `persona-` prefix.
 
 ## Architecture (Claude Code)
 
