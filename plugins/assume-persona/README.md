@@ -25,7 +25,7 @@ Or from a local clone:
 ./plugins/assume-persona/opencode/install.sh
 ```
 
-**Note:** OpenCode uses a simplified implementation without session state tracking. See [OpenCode Differences](#opencode-differences) for details.
+**Note:** After installing, register the plugin in `~/.config/opencode/config.json`. See [OpenCode Differences](#opencode-differences) for behavioral differences.
 
 ## Skills (Claude Code)
 
@@ -106,6 +106,9 @@ Local takes precedence over user.
 | `/assume-persona:create <name>` | Research and create a new persona |
 | `/assume-persona:load <name?>` | Load and activate a persona |
 | `/assume-persona:show <name?>` | Preview a persona without activating |
+| `/assume-persona:status` | Show currently loaded personas |
+| `/assume-persona:clear [name?]` | Clear persona(s) from session state |
+| `/assume-persona:restore` | Restore personas from previous session |
 | `/assume-persona:audit <name?>` | Audit quality and suggest improvements |
 | `/assume-persona:recommend` | Suggest personas for current context |
 | `/assume-persona:import <path>` | Import persona from file/URL |
@@ -114,33 +117,21 @@ Local takes precedence over user.
 
 ### OpenCode Differences
 
-The OpenCode implementation shares the same persona format but differs in a few ways:
+The OpenCode implementation shares the same persona format and most features, with a few behavioral differences:
 
 | Feature | Claude Code | OpenCode |
 |---------|-------------|----------|
-| Command prefix | `/assume-persona:*` | `/assume-persona:*` |
-| Session tracking | Yes (`status`, `clear`) | No |
-| Auto-invocation | Via skill descriptions | Not yet supported |
-| Deduplication | Per-session state file | None (manual) |
+| Session tracking | Yes | Yes |
+| Deduplication | Per-session state | Per-session state |
+| Auto-invocation | Via skill descriptions | Via skill descriptions |
+| Post-compaction restore | Automatic | Manual (skill triggers on "resuming session" phrases) |
 | Persona format | `~/.claude/skills/assume-persona--*/` | Same (compatible) |
 
-**Why no `status` or `clear`?**
+**Post-compaction restore**
 
-Claude Code exposes `$CLAUDE_SESSION_ID` to plugins, enabling per-session state tracking. OpenCode doesn't expose a session ID to commands, so we can't track which personas have been loaded in the current session.
+In Claude Code, personas automatically restore after context compaction. In OpenCode, the `session-restore` skill triggers on conversational phrases like "resuming session", "where were we", or "continuing work" — but context compaction is a silent event that doesn't produce these phrases.
 
-**Why is deduplication less important in OpenCode?**
-
-In Claude Code, personas auto-invoke based on keyword matching in skill descriptions. Without deduplication, discussing "testing" multiple times could load the same QA persona repeatedly, bloating context.
-
-OpenCode handles this differently:
-- Skills are loaded via the `skill` tool, which the agent calls explicitly
-- The agent sees the skill name and description, and decides whether to load
-- Once loaded, the agent knows the content is in context and won't re-load
-- This is "agent-managed deduplication" vs "state-file deduplication"
-
-In practice, you're unlikely to accidentally load the same persona twice in OpenCode because the agent is making deliberate tool calls, not reacting to keyword triggers.
-
-If OpenCode adds session ID support in the future, we can add `status`/`clear` commands for parity.
+If you notice degraded responses after a long session, run `/assume-persona:restore` to reload your personas.
 
 ## Architecture (Claude Code)
 
