@@ -5,8 +5,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "fs";
 import { homedir } from "os";
 import { join, dirname } from "path";
-import type { State, SessionState, Config, HandoffState } from "./types";
-import { HANDOFF_KEY } from "./types";
+import type { State, SessionState, Config } from "./types";
 
 // State file location - use OpenCode's config directory
 const STATE_DIR = join(homedir(), ".config/opencode/plugin-data/assume-persona");
@@ -49,7 +48,7 @@ export function writeState(state: State): void {
 /**
  * Get session state for a specific session
  */
-export function getSessionState(sessionId: string): SessionState | null {
+function getSessionState(sessionId: string): SessionState | null {
   const state = readState();
   return (state[sessionId] as SessionState) ?? null;
 }
@@ -148,51 +147,6 @@ export function clearPersonaFromSession(
 }
 
 /**
- * Clean up a session entirely (on session end)
- */
-export function cleanupSession(sessionId: string): void {
-  const state = readState();
-  delete state[sessionId];
-  writeState(state);
-}
-
-/**
- * Save handoff state for /clear (preserves personas for new session)
- */
-export function saveHandoff(sessionId: string): void {
-  const state = readState();
-  const session = state[sessionId] as SessionState | undefined;
-
-  if (session && session.loadedPersonas.length > 0) {
-    state[HANDOFF_KEY] = {
-      personas: [...session.loadedPersonas],
-      timestamp: Date.now(),
-    };
-  }
-
-  // Remove the old session
-  delete state[sessionId];
-  writeState(state);
-}
-
-/**
- * Read and clear handoff state
- */
-export function consumeHandoff(): string[] {
-  const state = readState();
-  const handoff = state[HANDOFF_KEY] as HandoffState | undefined;
-
-  if (!handoff) {
-    return [];
-  }
-
-  const personas = handoff.personas;
-  delete state[HANDOFF_KEY];
-  writeState(state);
-  return personas;
-}
-
-/**
  * Prune stale sessions (older than 7 days)
  */
 export function pruneStaleState(): void {
@@ -201,8 +155,6 @@ export function pruneStaleState(): void {
   let modified = false;
 
   for (const sessionId of Object.keys(state)) {
-    if (sessionId === HANDOFF_KEY) continue;
-
     const session = state[sessionId] as SessionState;
     if (session.lastAccess) {
       const lastAccess = new Date(session.lastAccess).getTime();
@@ -221,7 +173,7 @@ export function pruneStaleState(): void {
 /**
  * Read project config for auto-load personas
  */
-export function readConfig(cwd: string): Config {
+function readConfig(cwd: string): Config {
   const configPath = getLocalConfigPath(cwd);
   try {
     if (existsSync(configPath)) {

@@ -5,7 +5,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
-import type { PersonaInfo, PersonaFrontmatter, ListResult } from "./types";
+import type { PersonaInfo, PersonaFrontmatter, ListResult, ValidationResult, SectionChecks } from "./types";
 import { PERSONA_SKILL_PREFIX } from "./types";
 import {
   getLoadedPersonas,
@@ -240,4 +240,127 @@ export function listPersonas(sessionId: string, cwd: string): ListResult {
  */
 export function personaExists(archetype: string, cwd: string): boolean {
   return findPersona(archetype, cwd) !== null;
+}
+
+/**
+ * Check if string is kebab-case
+ */
+function isKebabCase(str: string): boolean {
+  return /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(str);
+}
+
+/**
+ * Check if string is valid YYYY-MM-DD date
+ */
+function isValidDate(dateStr: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return false;
+  }
+  const date = new Date(dateStr);
+  return !isNaN(date.getTime());
+}
+
+/**
+ * Check for required sections in persona body
+ */
+function checkSections(body: string): SectionChecks {
+  // Role description: paragraph containing "You are"
+  const hasRoleDescription =
+    body.includes("You are") ||
+    body.match(/^#[^#].*\n+You are/m) !== null;
+
+  // Check for required section headings (case-insensitive)
+  const hasCoreExpertise = /##\s*core\s+expertise/i.test(body);
+  const hasMentalModels = /##\s*mental\s+models/i.test(body);
+  const hasBestPractices = /##\s*best\s+practices/i.test(body);
+  const hasPitfalls = /##\s*(pitfalls|pitfalls\s+to\s+avoid)/i.test(body);
+  const hasTools = /##\s*(tools|tools\s*(&|and)\s*technologies)/i.test(body);
+
+  return {
+    roleDescription: hasRoleDescription,
+    coreExpertise: hasCoreExpertise,
+    mentalModels: hasMentalModels,
+    bestPractices: hasBestPractices,
+    pitfalls: hasPitfalls,
+    tools: hasTools,
+  };
+}
+
+/**
+ * Validate persona content structure
+ */
+export function validatePersonaContent(content: string): ValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const frontmatter = parseFrontmatter(content);
+  const lineCount = content.split("\n").length;
+
+  // Extract body (content after frontmatter)
+  const bodyMatch = content.match(/^---\n[\s\S]*?\n---\n([\s\S]*)$/);
+  const body = bodyMatch ? bodyMatch[1] : content;
+
+  const sections = checkSections(body);
+
+  // Frontmatter validation
+  if (!content.startsWith("---\n")) {
+    errors.push("Missing YAML frontmatter");
+  }
+
+  // Required: archetype
+  if (!frontmatter?.archetype) {
+    errors.push("Missing required frontmatter field: archetype");
+  } else if (!isKebabCase(frontmatter.archetype)) {
+    errors.push(`Archetype must be kebab-case: "${frontmatter.archetype}"`);
+  }
+
+  // Required: created
+  if (!frontmatter?.created) {
+    errors.push("Missing required frontmatter field: created");
+  } else if (!isValidDate(frontmatter.created)) {
+    errors.push(
+      `Invalid date format for created (expected YYYY-MM-DD): "${frontmatter.created}"`
+    );
+  }
+
+  // Optional but recommended
+  if (!frontmatter?.category) {
+    warnings.push("Missing optional frontmatter field: category");
+  }
+
+  // Section validation
+  if (!sections.roleDescription) {
+    errors.push('Missing role description (paragraph containing "You are")');
+  }
+  if (!sections.coreExpertise) {
+    errors.push("Missing required section: ## Core Expertise");
+  }
+  if (!sections.mentalModels) {
+    errors.push("Missing required section: ## Mental Models");
+  }
+  if (!sections.bestPractices) {
+    errors.push("Missing required section: ## Best Practices");
+  }
+  if (!sections.pitfalls) {
+    errors.push("Missing required section: ## Pitfalls (or ## Pitfalls to Avoid)");
+  }
+  if (!sections.tools) {
+    errors.push("Missing required section: ## Tools (or ## Tools & Technologies)");
+  }
+
+  // Length checks
+  if (lineCount < 100) {
+    warnings.push(`Persona is short (${lineCount} lines, recommended: 100-500)`);
+  } else if (lineCount > 500) {
+    warnings.push(`Persona is long (${lineCount} lines, recommended: 100-500)`);
+  }
+
+  return {
+    valid: errors.length === 0,
+    frontmatter: frontmatter || { archetype: "", created: "" },
+    sections,
+    lineCount,
+    errors,
+    warnings,
+  };
 }

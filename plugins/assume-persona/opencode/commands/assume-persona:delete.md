@@ -52,6 +52,8 @@ For each archetype to delete:
 
 ### 4. Show Confirmation (Destructive Operation)
 
+Output the personas to be deleted:
+
 ```
 Delete the following persona(s)?
 
@@ -61,10 +63,10 @@ Delete the following persona(s)?
 
 This action is permanent and cannot be undone.
 
-Confirm deletion? (yes/no)
+Reply "yes" to confirm deletion, or "cancel" to abort.
 ```
 
-Wait for explicit user confirmation. If not confirmed, stop here.
+Then STOP and wait for the user's response. If user does not confirm with "yes", stop here.
 
 ### 5. Delete Each Confirmed Persona
 

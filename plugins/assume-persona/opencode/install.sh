@@ -96,7 +96,6 @@ COMMANDS=(
   "assume-persona:show.md"
   "assume-persona:status.md"
   "assume-persona:clear.md"
-  "assume-persona:restore.md"
   "assume-persona:create.md"
   "assume-persona:delete.md"
   "assume-persona:recommend.md"

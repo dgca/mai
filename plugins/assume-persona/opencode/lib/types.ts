@@ -7,14 +7,8 @@ export interface SessionState {
   lastAccess: string;
 }
 
-export interface HandoffState {
-  personas: string[];
-  timestamp: number;
-}
-
 export interface State {
   [sessionId: string]: SessionState;
-  "session-clear-handoff"?: HandoffState;
 }
 
 export interface Config {
@@ -49,11 +43,22 @@ export interface ListResult {
   };
 }
 
-export interface StatusResult {
-  loadedPersonas: string[];
-  autoLoad: string[];
-  configPath: string;
+export const PERSONA_SKILL_PREFIX = "assume-persona--";
+
+export interface SectionChecks {
+  roleDescription: boolean;
+  coreExpertise: boolean;
+  mentalModels: boolean;
+  bestPractices: boolean;
+  pitfalls: boolean;
+  tools: boolean;
 }
 
-export const PERSONA_SKILL_PREFIX = "assume-persona--";
-export const HANDOFF_KEY = "session-clear-handoff";
+export interface ValidationResult {
+  valid: boolean;
+  frontmatter: PersonaFrontmatter;
+  sections: SectionChecks;
+  lineCount: number;
+  errors: string[];
+  warnings: string[];
+}

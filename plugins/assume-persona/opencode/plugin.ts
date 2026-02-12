@@ -10,13 +10,13 @@
 
 import type { Plugin } from "@opencode-ai/plugin";
 import { tool } from "@opencode-ai/plugin";
+
 import {
   getLoadedPersonas,
   getAutoLoadPersonas,
   getConfigPath,
   clearPersonaFromSession,
   markPersonasLoaded,
-  consumeHandoff,
   pruneStaleState,
   isPersonaLoaded,
 } from "./lib/state";
@@ -26,6 +26,7 @@ import {
   readPersonaContent,
   personaExists,
   findPersona,
+  validatePersonaContent,
 } from "./lib/personas";
 
 export const AssumePersonaPlugin: Plugin = async (ctx) => {
@@ -42,8 +43,11 @@ export const AssumePersonaPlugin: Plugin = async (ctx) => {
     event: async ({ event }) => {
       // Handle session creation - restore personas
       if (event.type === "session.created") {
+
         // Try different property paths for session ID
-        currentSessionId = (event.properties?.id ?? event.properties?.sessionId ?? (event as any).id ?? (event as any).sessionId) as string;
+        // Debug showed structure is: event.properties.info.id
+        const props = event.properties as Record<string, any> | undefined;
+        currentSessionId = (props?.info?.id ?? props?.id ?? props?.sessionId ?? (event as any).id) as string;
         
         // Fallback: generate a session ID if none found
         if (!currentSessionId) {
@@ -58,26 +62,17 @@ export const AssumePersonaPlugin: Plugin = async (ctx) => {
         // Get auto-load personas from project config
         const autoLoadArchetypes = getAutoLoadPersonas(cwd);
 
-        // Check for handoff from /clear or /new
-        const handoffArchetypes = consumeHandoff();
-
-        // Combine (deduplicated)
-        const allArchetypes = [...new Set([...autoLoadArchetypes, ...handoffArchetypes])];
-
-        if (allArchetypes.length === 0) return;
+        if (autoLoadArchetypes.length === 0) {
+          return;
+        }
 
         // Load personas and build output
-        const loaded: Array<{ archetype: string; content: string; reason: "auto" | "restored" }> = [];
-        const autoLoadSet = new Set(autoLoadArchetypes);
+        const loaded: Array<{ archetype: string; content: string }> = [];
 
-        for (const archetype of allArchetypes) {
+        for (const archetype of autoLoadArchetypes) {
           const content = readPersonaContent(archetype, cwd);
           if (content) {
-            loaded.push({
-              archetype,
-              content,
-              reason: autoLoadSet.has(archetype) ? "auto" : "restored",
-            });
+            loaded.push({ archetype, content });
           }
         }
 
@@ -89,21 +84,9 @@ export const AssumePersonaPlugin: Plugin = async (ctx) => {
           loaded.map((p) => p.archetype)
         );
 
-        // Build notification
-        const autoLoaded = loaded.filter((p) => p.reason === "auto").map((p) => p.archetype);
-        const restored = loaded.filter((p) => p.reason === "restored").map((p) => p.archetype);
-
-        const lines: string[] = [];
-        if (autoLoaded.length > 0) {
-          lines.push(`Personas loaded from project config: ${autoLoaded.join(", ")}`);
-        }
-        if (restored.length > 0) {
-          lines.push(`Personas restored from session: ${restored.join(", ")}`);
-        }
-
-        // TODO: Inject persona content into context
-        // OpenCode doesn't have a direct way to inject content on session start
-        // The personas will need to be re-loaded via the tool or command
+        // Note: Personas are marked in state but content injection happens
+        // when the agent uses persona_load or the skill tool auto-invokes them.
+        // The compaction hook ensures content survives context compaction.
       }
 
       // Track session ID updates
@@ -181,11 +164,16 @@ ${personaContents.join("\n\n---\n\n")}`);
        */
       persona_load: tool({
         description:
-          "Load an expert persona into the current session. Returns the persona content which you should absorb silently. Confirm with a brief message like 'Persona activated: <name>' - do not summarize the content.",
+          "Load an expert persona into the current session. Returns the persona content if not already loaded. Use this to get specialized expertise for the current task.",
         args: {
           archetype: tool.schema.string({
             description: "The persona archetype name (e.g., 'typescript-fullstack', 'qa-engineer')",
           }),
+          validate: tool.schema.optional(
+            tool.schema.boolean({
+              description: "Run validation and include report in output. Use after create/import.",
+            })
+          ),
         },
         async execute(args, context) {
           const sessionId = context.sessionID || currentSessionId;
@@ -208,7 +196,44 @@ ${personaContents.join("\n\n---\n\n")}`);
             return `Persona '${args.archetype}' is already loaded in this session.`;
           }
 
-          return `# Persona Loaded: ${args.archetype}\n\n${result.content}`;
+          // Build output
+          let output = `# Persona Loaded: ${args.archetype}\n\n${result.content}`;
+
+          // Add validation report if requested
+          if (args.validate) {
+            const validation = validatePersonaContent(result.content);
+            const lines: string[] = ["\n\n---\n\n## Validation Report"];
+
+            if (validation.valid) {
+              lines.push("\n**Status**: Valid");
+            } else {
+              lines.push("\n**Status**: Has issues");
+            }
+
+            lines.push(`\n**Lines**: ${validation.lineCount}`);
+
+            if (validation.errors.length > 0) {
+              lines.push("\n### Errors");
+              for (const err of validation.errors) {
+                lines.push(`- ${err}`);
+              }
+            }
+
+            if (validation.warnings.length > 0) {
+              lines.push("\n### Warnings");
+              for (const warn of validation.warnings) {
+                lines.push(`- ${warn}`);
+              }
+            }
+
+            if (validation.valid && validation.warnings.length === 0) {
+              lines.push("\nNo issues found.");
+            }
+
+            output += lines.join("\n");
+          }
+
+          return output;
         },
       }),
 
@@ -405,67 +430,6 @@ ${content}
 ---
 
 **This is a preview only.** Use \`persona_load\` or \`/assume-persona:load ${args.archetype}\` to activate.`;
-        },
-      }),
-
-      /**
-       * Restore personas from session state or handoff
-       */
-      persona_restore: tool({
-        description:
-          "Restore previously loaded personas from session state. Use this when resuming a session to reload expertise context.",
-        args: {},
-        async execute(args, context) {
-          const sessionId = context.sessionID || currentSessionId;
-          if (!sessionId) {
-            return "No active session.";
-          }
-          
-          if (context.sessionID) {
-            currentSessionId = context.sessionID;
-          }
-
-          // Get personas to restore from state
-          const loadedPersonas = getLoadedPersonas(sessionId);
-
-          if (loadedPersonas.length === 0) {
-            return `No personas to restore.
-
-Use \`persona_list\` or \`/assume-persona:list\` to see available personas.`;
-          }
-
-          // Load each persona and collect content
-          const results: Array<{ archetype: string; content: string }> = [];
-          const failed: string[] = [];
-
-          for (const archetype of loadedPersonas) {
-            const content = readPersonaContent(archetype, cwd);
-            if (content) {
-              results.push({ archetype, content });
-            } else {
-              failed.push(archetype);
-            }
-          }
-
-          if (results.length === 0) {
-            return `Failed to restore personas: ${failed.join(", ")}
-
-The persona files may have been deleted. Use \`persona_clear\` to reset session state.`;
-          }
-
-          const lines = [`# Restored ${results.length} Persona(s)\n`];
-
-          for (const { archetype, content } of results) {
-            lines.push(`## ${archetype}\n`);
-            lines.push(content);
-            lines.push("\n---\n");
-          }
-
-          if (failed.length > 0) {
-            lines.push(`\n**Failed to restore**: ${failed.join(", ")}`);
-          }
-
-          return lines.join("\n");
         },
       }),
 

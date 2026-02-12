@@ -88,16 +88,19 @@ Proceed directly to **Step 4: Save Persona**.
    - Missing required section: Mental Models
    ```
 
-2. **Offer choices**:
-   ```
-   This persona has validation issues.
+2. **Output the validation report and prompt**:
 
-   1. **Fix issues automatically** - I'll repair the content
-   2. **Import anyway** - Save despite the issues
-   3. **Cancel** - Don't import
+   Output the report and end your response with:
    ```
+   What would you like to do?
+   - "fix" - Repair automatically
+   - "import" - Save anyway
+   - "cancel" - Don't import
+   ```
+   
+   Then STOP and wait for the user's response.
 
-3. **If "Fix issues automatically"**:
+3. **If user says "fix"**:
    - Add missing frontmatter fields:
      - `archetype`: infer from content or filename if missing
      - `created`: use today's date (YYYY-MM-DD)
@@ -108,25 +111,28 @@ Proceed directly to **Step 4: Save Persona**.
    - Show summary of changes made
    - Continue to **Step 4: Save Persona**
 
-4. **If "Import anyway"**: Continue to **Step 4** with original content
+4. **If user says "import"**: Continue to **Step 4** with original content
 
-5. **If "Cancel"**: Stop here
+5. **If user says "cancel"**: Stop here
 
 ---
 
 #### Branch C: Raw Content (no archetype in frontmatter)
 
 1. **Ask user**:
+
+   Output:
    ```
-   This doesn't look like a persona file. Would you like me to create a persona from this content?
-
-   1. **Yes** - Generate a full persona based on this content
-   2. **No** - Cancel import
+   This doesn't look like a persona file.
+   
+   Reply "yes" to generate a full persona from this content, or "no" to cancel.
    ```
+   
+   Then STOP and wait for the user's response.
 
-2. **If "No"**: Stop here
+2. **If user says "no"**: Stop here
 
-3. **If "Yes"**:
+3. **If user says "yes"**:
 
    a. **Ask for archetype name**:
       ```
@@ -181,29 +187,47 @@ Proceed directly to **Step 4: Save Persona**.
       ```
       Target length: 200-400 lines
 
-   d. Continue to **Step 4: Save Persona**
+   d. **Validate the generated persona** before saving:
+      - Check frontmatter: `archetype:` (kebab-case), `created:` (YYYY-MM-DD), `category:`, `keywords:`
+      - Check required sections: Role description ("You are"), Core Expertise, Mental Models, Best Practices, Pitfalls, Tools
+      - Check length: 100-500 lines recommended
+      
+      If validation fails, show report and end your response with:
+      ```
+      What would you like to do?
+      - "fix" - Repair automatically
+      - "save" - Save anyway
+      - "cancel" - Don't save
+      ```
+      
+      Then STOP and wait for the user's response.
+
+   e. Continue to **Step 4: Save Persona**
 
 ---
 
 ### Step 4: Save Persona
 
 1. **Ask storage preference**:
+
+   Output:
    ```
    Where should I save this persona?
-
-   1. **Local** (.claude/skills/assume-persona--<archetype>/) - Specific to this project
-   2. **User** (~/.claude/skills/assume-persona--<archetype>/) - Available globally
+   - "local" - .claude/skills/ in this project
+   - "user" - ~/.claude/skills/ for global access
    ```
+   
+   Then STOP and wait for the user's response.
 
 2. **Check for conflicts**:
-   If a persona with the same archetype exists at that location:
+   If a persona with the same archetype exists at that location, output:
    ```
    Persona '<archetype>' already exists at <location>.
-
-   1. Overwrite existing
-   2. Save with different name
-   3. Cancel
+   
+   Reply "overwrite" to replace, "rename" to use a different name, or "cancel" to abort.
    ```
+   
+   Then STOP and wait for the user's response.
 
 3. **Generate SKILL.md**:
    - Extract keywords from persona content (frontmatter keywords, section topics, technologies)
@@ -227,13 +251,16 @@ Proceed directly to **Step 4: Save Persona**.
    - `[location]/assume-persona--[archetype]/persona.md`
    - `[location]/assume-persona--[archetype]/SKILL.md`
 
-5. **Load and confirm**:
-   Load the persona into the current session (display the persona.md content to inject into context).
-
+5. **Return for loading**:
+   Return a response that includes:
+   - Confirmation message
+   - Instruction for main session to load
+   
+   Example:
    ```
-   Persona '<archetype>' imported and activated.
+   Persona '<archetype>' imported to [location].
 
-   The persona will auto-invoke when relevant topics are detected.
+   ACTION_REQUIRED: Load this persona with persona_load tool using archetype "<archetype>"
    ```
 
 ## Notes

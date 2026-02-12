@@ -97,7 +97,13 @@ Use WebFetch to research:
 - Recent blog posts or articles about the domain (search for "{domain} best practices 2026")
 - Changelog or release notes for primary tools
 
-### 5. Generate Audit Report
+### 5. Generate and Output Audit Report
+
+**CRITICAL OUTPUT RULES**:
+1. Output the FULL audit report below as your response
+2. Do NOT call any tools (like `question`) in the same turn as the report
+3. End your response with the prompt asking what to do
+4. STOP and wait for user input before taking any action
 
 Present findings in this format:
 
@@ -133,20 +139,30 @@ Current keywords: [list from frontmatter]
 Suggested additions: [list any missing relevant keywords]
 ```
 
-### 6. Offer to Apply Updates
-
-If improvements are needed, ask:
-
+If no improvements are needed, output the report and stop here with:
 ```
-Apply improvements?
-1. All of them
-2. Let me choose specific ones
-3. None - keep as is
+No improvements needed. Persona is in good shape.
 ```
 
-If user wants to choose specific ones, let them specify (e.g., "1, 3, 5" or "all except 2").
+If improvements ARE needed, output the report and end your response with:
+```
+What would you like to do?
+- "apply" - Apply all improvements
+- "choose" - Select specific improvements  
+- "skip" - Keep as is
+```
 
-### 7. Apply Approved Changes
+Then STOP and wait for the user's response.
+
+### 6. Apply Updates (after user responds)
+
+After the user responds:
+
+- **"apply" or "all"**: Apply all suggested improvements (proceed to Step 7)
+- **"choose" or "select"**: Use the `question` tool to present numbered improvements for selection, then apply selected ones
+- **"skip" or "none"**: Output "Keeping persona as is." and stop
+
+### 7. Make the Changes
 
 - Make edits incrementally, explaining each change
 - Update the `created` date to today if content was refreshed
@@ -162,7 +178,7 @@ Persona '<archetype>' updated.
 
 ## Notes
 
-- If no improvements are needed, skip the "Apply improvements?" prompt
-- User must explicitly approve changes before any edits are made
+- If no improvements are needed, output the report and stop (no prompt needed)
+- User must explicitly request changes before any edits are made
 - The `created` date updates to reflect the edit
 - Description quality is important for auto-invocation matching

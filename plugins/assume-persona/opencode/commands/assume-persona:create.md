@@ -99,16 +99,80 @@ Create a description for SKILL.md that captures when to auto-invoke this persona
 - Keep it concise but comprehensive for matching
 - Example: "TypeScript fullstack persona. Invoke when discussing: React, Next.js, Node.js, TypeScript, API design, frontend architecture, server-side rendering."
 
-## Step 7: Ask where to save
+## Step 7: Validate the persona
 
-Ask the user:
-> "Where should I save this persona?
->
-> 1. **Local** (.claude/skills/assume-persona--<archetype>/) - Specific to this project
-> 2. **User** (~/.claude/skills/assume-persona--<archetype>/) - Available globally
-> 3. **Session only** - Don't save, just apply now"
+Before saving, validate the generated persona content:
 
-## Step 8: Save the files (unless session-only)
+**Check frontmatter:**
+- `archetype:` present and kebab-case
+- `created:` present and valid YYYY-MM-DD format
+- `category:` present (optional but recommended)
+- `keywords:` present with at least one entry (optional but recommended)
+
+**Check required sections:**
+- Role description paragraph containing "You are"
+- `## Core Expertise`
+- `## Mental Models`
+- `## Best Practices`
+- `## Pitfalls to Avoid` (or `## Pitfalls`)
+- `## Tools & Technologies` (or `## Tools`)
+
+**Check quality:**
+- Length: 100-500 lines recommended
+
+**If validation passes:** Continue to Step 8.
+
+**If validation fails:** Show the validation report:
+
+```
+## Validation Report
+
+### Frontmatter
+✓ archetype: <value>
+✓ created: <value>
+⚠ category: missing (optional)
+
+### Required Sections
+✓ Role description
+✓ Core Expertise
+✗ Mental Models (missing)
+✓ Best Practices
+✓ Pitfalls to Avoid
+✓ Tools & Technologies
+
+### Issues Found
+- Missing required section: Mental Models
+```
+
+Then output the validation report and end your response with:
+
+```
+What would you like to do?
+- "fix" - Repair automatically
+- "save" - Save anyway
+- "cancel" - Don't save
+```
+
+Then STOP and wait for the user's response.
+
+- **If user says "fix"**: Fix the identified issues (add missing sections, correct frontmatter), show summary of changes, then continue to Step 8.
+- **If user says "save"**: Continue to Step 8 with original content.
+- **If user says "cancel"**: Stop here.
+
+## Step 8: Ask where to save
+
+Output:
+
+```
+Where should I save this persona?
+- "local" - .claude/skills/ in this project
+- "user" - ~/.claude/skills/ for global access  
+- "session" - Don't save, just apply now
+```
+
+Then STOP and wait for the user's response.
+
+## Step 9: Save the files (unless session-only)
 
 If user chose Local or User, create the directory and save both files:
 - `[location]/assume-persona--$ARGUMENTS/persona.md`
@@ -127,7 +191,7 @@ Read and adopt the persona from [location]/assume-persona--<archetype>/persona.m
 
 Note: Only `name` and `description` are required in frontmatter. The description should be keyword-rich for auto-invocation matching.
 
-## Step 9: Return for loading
+## Step 10: Return for loading
 
 After saving (or for session-only), return a response that includes:
 1. Confirmation message
