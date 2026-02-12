@@ -62,7 +62,6 @@ Read both `persona.md` and `SKILL.md` and check these requirements:
   - Pitfalls to Avoid
   - Tools & Technologies
 - [ ] Uses tables for comparisons and quick-reference content
-- [ ] Code examples use generic patterns, not project-specific code
 - [ ] Created date is present (for staleness calculation)
 
 **SKILL.md requirements:**
