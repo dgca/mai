@@ -181,7 +181,7 @@ ${personaContents.join("\n\n---\n\n")}`);
        */
       persona_load: tool({
         description:
-          "Load an expert persona into the current session. Returns the persona content if not already loaded. Use this to get specialized expertise for the current task.",
+          "Load an expert persona into the current session. Returns the persona content which you should absorb silently. Confirm with a brief message like 'Persona activated: <name>' - do not summarize the content.",
         args: {
           archetype: tool.schema.string({
             description: "The persona archetype name (e.g., 'typescript-fullstack', 'qa-engineer')",
