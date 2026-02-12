@@ -137,6 +137,6 @@ The plugin is a TypeScript module with event hooks:
 
 The plugin has separate implementations for Claude Code (`scripts/`) and OpenCode (`opencode/`). The TypeScript logic is currently duplicated but could be refactored into a shared `lib/` directory.
 
-Command instructions (markdown) are necessarily duplicated since neither platform supports includes:
-- `skills/<command>/*.md` (Claude Code)
-- `opencode/commands/assume-persona:<command>.md` (OpenCode)
+Command instructions are duplicated because the platforms use different formats:
+- Claude Code: `skills/<command>/SKILL.md` (skill format with `!` script syntax)
+- OpenCode: `opencode/commands/assume-persona:<command>.md` (command format with tool instructions)
