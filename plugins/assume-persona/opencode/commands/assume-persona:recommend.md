@@ -1,5 +1,6 @@
 ---
 description: Recommend personas based on current conversation context
+subtask: true
 ---
 
 # Recommend Persona
