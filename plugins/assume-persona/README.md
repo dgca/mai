@@ -144,4 +144,5 @@ Command instructions are duplicated because the platforms use different formats:
 ## Future Work
 
 - **Shared lib**: Extract duplicated TypeScript logic (persona discovery, state management, validation) into a shared `lib/` directory that both `scripts/*.ts` and `opencode/plugin.ts` import from
+- **Folder reorganization**: Move Claude Code files under `claude-code/` subdirectory to match `opencode/` structure
 - **Unified prefix**: Update Claude Code to use `persona-` prefix for full cross-tool compatibility (breaking change for existing users)
