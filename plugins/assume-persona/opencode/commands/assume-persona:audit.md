@@ -15,8 +15,8 @@ Audit a persona for structure, content quality, and SKILL.md description quality
 
 Personas are stored as skills in:
 
-1. **Local/project**: `.claude/skills/assume-persona--<archetype>/`
-2. **User**: `~/.claude/skills/assume-persona--<archetype>/`
+1. **Local/project**: `.claude/skills/persona-<archetype>/`
+2. **User**: `~/.claude/skills/persona-<archetype>/`
 
 Each persona skill contains:
 - `SKILL.md` - Metadata and loader (description quality matters for auto-invocation)
@@ -29,15 +29,15 @@ Each persona skill contains:
 - If archetype provided in `$ARGUMENTS`, audit that one
 - If empty, list available personas and ask user to pick:
 
-  !`for dir in ~/.claude/skills/assume-persona--*/ .claude/skills/assume-persona--*/ 2>/dev/null; do [ -d "$dir" ] || continue; name=$(basename "$dir" | sed 's/assume-persona--//'); scope="user"; [[ "$dir" == .claude/* ]] && scope="local"; echo "- $name ($scope)"; done`
+  !`for dir in ~/.claude/skills/persona-*/ .claude/skills/persona-*/ 2>/dev/null; do [ -d "$dir" ] || continue; name=$(basename "$dir" | sed 's/persona-//'); scope="user"; [[ "$dir" == .claude/* ]] && scope="local"; echo "- $name ($scope)"; done`
 
   Ask: "Which persona would you like to audit?"
 
 ### 2. Locate the Persona
 
 Check both locations (local takes precedence):
-- `.claude/skills/assume-persona--<archetype>/`
-- `~/.claude/skills/assume-persona--<archetype>/`
+- `.claude/skills/persona-<archetype>/`
+- `~/.claude/skills/persona-<archetype>/`
 
 If not found:
 ```
@@ -74,12 +74,12 @@ Read both `persona.md` and `SKILL.md` and check these requirements:
 Standard SKILL.md format:
 ```markdown
 ---
-name: assume-persona--<archetype>
+name: persona-<archetype>
 description: |
   <Role> persona for <domain>. Invoke when discussing: <keyword1>, <keyword2>, ...
 ---
 
-Read and adopt the persona from <location>/assume-persona--<archetype>/persona.md
+Read and adopt the persona from <location>/persona-<archetype>/persona.md
 ```
 
 ### 4. Content Staleness Check

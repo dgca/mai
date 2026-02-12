@@ -16,7 +16,7 @@ You are helping create a new expert persona called "$ARGUMENTS".
 
 Check both local and user locations:
 
-!`ls -d .claude/skills/assume-persona--$1/ ~/.claude/skills/assume-persona--$1/ 2>/dev/null | head -1`
+!`ls -d .claude/skills/persona-$1/ ~/.claude/skills/persona-$1/ 2>/dev/null | head -1`
 
 If found, tell the user:
 > "Persona '$ARGUMENTS' already exists. Use `/assume-persona:audit $ARGUMENTS` to review or `/assume-persona:load $ARGUMENTS` to activate."
@@ -175,18 +175,18 @@ Then STOP and wait for the user's response.
 ## Step 9: Save the files (unless session-only)
 
 If user chose Local or User, create the directory and save both files:
-- `[location]/assume-persona--$ARGUMENTS/persona.md`
-- `[location]/assume-persona--$ARGUMENTS/SKILL.md`
+- `[location]/persona-$ARGUMENTS/persona.md`
+- `[location]/persona-$ARGUMENTS/SKILL.md`
 
 The SKILL.md should contain:
 ```markdown
 ---
-name: assume-persona--<archetype>
+name: persona-<archetype>
 description: |
   [The description from step 6]
 ---
 
-Read and adopt the persona from [location]/assume-persona--<archetype>/persona.md
+Read and adopt the persona from [location]/persona-<archetype>/persona.md
 ```
 
 Note: Only `name` and `description` are required in frontmatter. The description should be keyword-rich for auto-invocation matching.

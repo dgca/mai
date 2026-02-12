@@ -18,8 +18,8 @@ Import a persona from a local file path or URL. Handles three cases:
 
 Imported personas are saved as skills in:
 
-1. **Local/project**: `.claude/skills/assume-persona--<archetype>/`
-2. **User** (global): `~/.claude/skills/assume-persona--<archetype>/`
+1. **Local/project**: `.claude/skills/persona-<archetype>/`
+2. **User** (global): `~/.claude/skills/persona-<archetype>/`
 
 Each persona skill contains:
 - `SKILL.md` - Lightweight loader with description for auto-invocation
@@ -237,19 +237,19 @@ Proceed directly to **Step 4: Save Persona**.
    SKILL.md format:
    ```markdown
    ---
-   name: assume-persona--<archetype>
+   name: persona-<archetype>
    description: |
      <keyword-rich description for auto-invocation>
    ---
 
-   Read and adopt the persona from [location]/assume-persona--<archetype>/persona.md
+   Read and adopt the persona from [location]/persona-<archetype>/persona.md
    ```
    
    Note: Only `name` and `description` are required in frontmatter.
 
 4. **Save both files**:
-   - `[location]/assume-persona--[archetype]/persona.md`
-   - `[location]/assume-persona--[archetype]/SKILL.md`
+   - `[location]/persona-[archetype]/persona.md`
+   - `[location]/persona-[archetype]/SKILL.md`
 
 5. **Return for loading**:
    Return a response that includes:

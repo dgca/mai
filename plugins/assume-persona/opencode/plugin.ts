@@ -28,6 +28,7 @@ import {
   findPersona,
   validatePersonaContent,
 } from "./lib/personas";
+import { PERSONA_SKILL_PREFIX } from "./lib/types";
 
 export const AssumePersonaPlugin: Plugin = async (ctx) => {
   const { directory, worktree } = ctx;
@@ -109,10 +110,10 @@ export const AssumePersonaPlugin: Plugin = async (ctx) => {
 
       // Check if this is an assume-persona skill
       const skillName = input.args?.name as string;
-      if (!skillName?.startsWith("assume-persona--")) return;
+      if (!skillName?.startsWith(PERSONA_SKILL_PREFIX)) return;
 
       // Extract archetype from skill name
-      const archetype = skillName.replace("assume-persona--", "");
+      const archetype = skillName.replace(PERSONA_SKILL_PREFIX, "");
 
       // Get session ID (may not be available in this context)
       const sessionId = currentSessionId;
@@ -531,8 +532,8 @@ This file can be committed to share personas across the team.
 ### Storage Locations
 
 Personas are stored as skills (precedence order):
-1. Local: .claude/skills/assume-persona--<archetype>/
-2. User: ~/.claude/skills/assume-persona--<archetype>/
+1. Local: .claude/skills/${PERSONA_SKILL_PREFIX}<archetype>/
+2. User: ~/.claude/skills/${PERSONA_SKILL_PREFIX}<archetype>/
 
 Each persona skill contains:
 - SKILL.md - Metadata and auto-invocation description

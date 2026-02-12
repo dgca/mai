@@ -21,7 +21,7 @@ If "$ARGUMENTS" is not empty, skip to Step 3 with that archetype.
 
 If "$ARGUMENTS" is empty, list available personas and ask which to delete:
 
-!`for dir in ~/.claude/skills/assume-persona--*/ .claude/skills/assume-persona--*/ 2>/dev/null; do [ -d "$dir" ] || continue; name=$(basename "$dir" | sed 's/assume-persona--//'); scope="user"; [[ "$dir" == .claude/* ]] && scope="local"; echo "- $name ($scope)"; done`
+!`for dir in ~/.claude/skills/persona-*/ .claude/skills/persona-*/ 2>/dev/null; do [ -d "$dir" ] || continue; name=$(basename "$dir" | sed 's/persona-//'); scope="user"; [[ "$dir" == .claude/* ]] && scope="local"; echo "- $name ($scope)"; done`
 
 If no personas found:
 ```
@@ -38,8 +38,8 @@ Which persona(s) would you like to delete? (You can specify multiple, space-sepa
 
 Personas are stored as skills in:
 
-- **Local**: `.claude/skills/assume-persona--<archetype>/`
-- **User**: `~/.claude/skills/assume-persona--<archetype>/`
+- **Local**: `.claude/skills/persona-<archetype>/`
+- **User**: `~/.claude/skills/persona-<archetype>/`
 
 ### 3. Validate Each Archetype
 
@@ -59,7 +59,7 @@ Delete the following persona(s)?
 
 | Archetype | Scope | Path |
 |-----------|-------|------|
-| react-expert | local | .claude/skills/assume-persona--react-expert/ |
+| react-expert | local | .claude/skills/persona-react-expert/ |
 
 This action is permanent and cannot be undone.
 

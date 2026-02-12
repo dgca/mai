@@ -43,7 +43,7 @@ export interface ListResult {
   };
 }
 
-export const PERSONA_SKILL_PREFIX = "assume-persona--";
+export const PERSONA_SKILL_PREFIX = "persona-";
 
 export interface SectionChecks {
   roleDescription: boolean;
