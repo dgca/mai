@@ -537,6 +537,7 @@ Load subject matter expert personas to get specialized assistance. Personas auto
 - **Auto-invocation**: Personas automatically load when relevant topics are detected
 - **Session deduplication**: Each persona loads once per session (no duplicates)
 - **Multiple personas**: Load several at once with /assume-persona:load persona1 persona2
+- **Project config**: Auto-load personas for all contributors (see below)
 - **Quality auditing**: Check persona freshness and completeness
 
 ### How Auto-Invocation Works
@@ -547,6 +548,21 @@ Personas are stored as skills with descriptions that enable auto-invocation:
 2. The topic is matched against persona skill descriptions
 3. The relevant persona loads automatically (once per session)
 4. You get specialized expertise without manual loading
+
+### Project Config
+
+Auto-load personas when entering a directory by creating:
+
+\`<project>/.claude/plugin-data/assume-persona/config.json\`
+
+Example:
+\`\`\`json
+{
+  "autoLoad": ["typescript-expert", "qa-engineer"]
+}
+\`\`\`
+
+This file can be committed to share personas across the team.
 
 ### Storage Locations
 
