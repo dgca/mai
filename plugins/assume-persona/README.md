@@ -108,7 +108,6 @@ Local takes precedence over user.
 | `/assume-persona:show <name?>` | Preview a persona without activating |
 | `/assume-persona:status` | Show currently loaded personas |
 | `/assume-persona:clear [name?]` | Clear persona(s) from session state |
-| `/assume-persona:restore` | Restore personas from previous session |
 | `/assume-persona:audit <name?>` | Audit quality and suggest improvements |
 | `/assume-persona:recommend` | Suggest personas for current context |
 | `/assume-persona:import <path>` | Import persona from file/URL |
@@ -137,3 +136,11 @@ The plugin uses a session-aware loader script to prevent duplicate loading:
 2. **SKILL.md dynamic context**: Invokes loader with session ID for deduplication
 3. **state.json**: Tracks loaded personas per session at `~/.claude/plugin-data/assume-persona/state.json`
 4. **SessionEnd hook**: Runs `save-handoff.ts` on clear (preserves state) or `cleanup-session.ts` otherwise
+
+## Contributing
+
+The plugin has separate implementations for Claude Code (`skills/`) and OpenCode (`opencode/`) due to platform differences in script execution and session management. Neither platform supports includes, so the instructions are duplicated.
+
+When updating command logic, mirror changes in both:
+- `skills/<command>/SKILL.md`
+- `opencode/commands/assume-persona:<command>.md`
