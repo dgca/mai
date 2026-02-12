@@ -42,7 +42,13 @@ export const AssumePersonaPlugin: Plugin = async (ctx) => {
     event: async ({ event }) => {
       // Handle session creation - restore personas
       if (event.type === "session.created") {
-        currentSessionId = event.properties?.id as string;
+        // Try different property paths for session ID
+        currentSessionId = (event.properties?.id ?? event.properties?.sessionId ?? (event as any).id ?? (event as any).sessionId) as string;
+        
+        // Fallback: generate a session ID if none found
+        if (!currentSessionId) {
+          currentSessionId = `session-${Date.now()}`;
+        }
 
         if (!currentSessionId) return;
 
@@ -98,7 +104,6 @@ export const AssumePersonaPlugin: Plugin = async (ctx) => {
         // TODO: Inject persona content into context
         // OpenCode doesn't have a direct way to inject content on session start
         // The personas will need to be re-loaded via the tool or command
-        console.log(`[assume-persona] ${lines.join("; ")}`);
       }
 
       // Track session ID updates
@@ -156,9 +161,14 @@ ${personaContents.join("\n\n---\n\n")}`);
           }),
         },
         async execute(args, context) {
-          const sessionId = currentSessionId;
+          const sessionId = context.sessionID || currentSessionId;
           if (!sessionId) {
             return "Error: No active session. Please try again.";
+          }
+          
+          // Update tracked session ID
+          if (context.sessionID) {
+            currentSessionId = context.sessionID;
           }
 
           const result = loadPersona(sessionId, args.archetype, cwd);
@@ -189,7 +199,10 @@ ${personaContents.join("\n\n---\n\n")}`);
           ),
         },
         async execute(args, context) {
-          const sessionId = currentSessionId || "unknown";
+          const sessionId = context.sessionID || currentSessionId || "unknown";
+          if (context.sessionID) {
+            currentSessionId = context.sessionID;
+          }
           const result = listPersonas(sessionId, cwd);
 
           if (result.personas.length === 0) {
@@ -237,9 +250,14 @@ ${personaContents.join("\n\n---\n\n")}`);
           "Show which personas are currently loaded in this session and auto-load configuration.",
         args: {},
         async execute(args, context) {
-          const sessionId = currentSessionId;
+          const sessionId = context.sessionID || currentSessionId;
           if (!sessionId) {
             return "No active session.";
+          }
+          
+          // Update tracked session ID
+          if (context.sessionID) {
+            currentSessionId = context.sessionID;
           }
 
           const loadedPersonas = getLoadedPersonas(sessionId);
@@ -289,9 +307,13 @@ No personas loaded this session.
           ),
         },
         async execute(args, context) {
-          const sessionId = currentSessionId;
+          const sessionId = context.sessionID || currentSessionId;
           if (!sessionId) {
             return "No active session.";
+          }
+          
+          if (context.sessionID) {
+            currentSessionId = context.sessionID;
           }
 
           const result = clearPersonaFromSession(sessionId, args.archetype);
@@ -330,6 +352,11 @@ The persona can now be re-loaded via /assume-persona:load.`;
           }),
         },
         async execute(args, context) {
+          const sessionId = context.sessionID || currentSessionId || "unknown";
+          if (context.sessionID) {
+            currentSessionId = context.sessionID;
+          }
+
           const content = readPersonaContent(args.archetype, cwd);
 
           if (!content) {
@@ -337,7 +364,6 @@ The persona can now be re-loaded via /assume-persona:load.`;
           }
 
           const found = findPersona(args.archetype, cwd);
-          const sessionId = currentSessionId || "unknown";
           const loaded = isPersonaLoaded(sessionId, args.archetype);
 
           return `# Persona Preview: ${args.archetype}
@@ -363,9 +389,13 @@ ${content}
           "Restore previously loaded personas from session state. Use this when resuming a session to reload expertise context.",
         args: {},
         async execute(args, context) {
-          const sessionId = currentSessionId;
+          const sessionId = context.sessionID || currentSessionId;
           if (!sessionId) {
             return "No active session.";
+          }
+          
+          if (context.sessionID) {
+            currentSessionId = context.sessionID;
           }
 
           // Get personas to restore from state
@@ -423,6 +453,11 @@ The persona files may have been deleted. Use \`persona_clear\` to reset session 
           }),
         },
         async execute(args, context) {
+          // Update session tracking if available
+          if (context.sessionID) {
+            currentSessionId = context.sessionID;
+          }
+          
           const exists = personaExists(args.archetype, cwd);
           const found = findPersona(args.archetype, cwd);
 
