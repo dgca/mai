@@ -1,0 +1,29 @@
+{
+  "name": "@mai/assume-persona-opencode",
+  "version": "1.0.0",
+  "description": "Expert persona loading plugin for OpenCode",
+  "type": "module",
+  "main": "plugin.ts",
+  "exports": {
+    ".": "./plugin.ts"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "^1.0.0"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "^1.0.0"
+  },
+  "files": [
+    "plugin.ts",
+    "lib/**/*.ts",
+    "commands/**/*.md"
+  ],
+  "keywords": [
+    "opencode",
+    "plugin",
+    "persona",
+    "ai",
+    "assistant"
+  ],
+  "license": "MIT"
+}
