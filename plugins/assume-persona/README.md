@@ -135,14 +135,19 @@ The plugin is a TypeScript module with event hooks:
 
 ## Contributing
 
-The plugin has separate implementations for Claude Code (`scripts/`) and OpenCode (`opencode/`). The TypeScript logic is currently duplicated but could be refactored into a shared `lib/` directory.
+The plugin has separate implementations for Claude Code (`scripts/`) and OpenCode (`opencode/`). 
 
-Command instructions are duplicated because the platforms use different formats:
-- Claude Code: `skills/<command>/SKILL.md` (skill format with `!` script syntax)
-- OpenCode: `opencode/commands/assume-persona:<command>.md` (command format with tool instructions)
+**TypeScript logic** is currently duplicated but could be refactored into a shared `lib/` directory.
+
+**Command instructions** (markdown) are duplicated because the platforms have different execution models:
+- Claude Code: Commands instruct the model to run bash scripts using `${CLAUDE_PLUGIN_ROOT}` variables
+- OpenCode: Commands trigger plugin tools defined in `plugin.ts`
+
+The instructions can't be shared directly, but some content within them (persona templates, validation rules, SKILL.md format) could be extracted into shared reference files.
 
 ## Future Work
 
 - **Shared lib**: Extract duplicated TypeScript logic (persona discovery, state management, validation) into a shared `lib/` directory that both `scripts/*.ts` and `opencode/plugin.ts` import from
+- **Shared templates**: Extract persona template structure, validation rules, and SKILL.md format into shared markdown files that both platforms' command instructions reference
 - **Folder reorganization**: Move Claude Code files under `claude-code/` subdirectory to match `opencode/` structure
 - **Unified prefix**: Update Claude Code to use `persona-` prefix for full cross-tool compatibility (breaking change for existing users)
