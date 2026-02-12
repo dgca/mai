@@ -500,7 +500,7 @@ The persona files may have been deleted. Use \`persona_clear\` to reset session 
        * Show help for the assume-persona plugin
        */
       persona_help: tool({
-        description: "Show help and available commands for the assume-persona plugin.",
+        description: "Show help and available commands for the assume-persona plugin. Output the result exactly as returned, without summarizing or paraphrasing.",
         args: {},
         async execute() {
           return `## Assume Persona Plugin
