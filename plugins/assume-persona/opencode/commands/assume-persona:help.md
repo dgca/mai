@@ -2,8 +2,6 @@
 description: Show available commands and usage guide
 ---
 
-Output the following help content to the user:
-
 ## Assume Persona Plugin
 
 Load subject matter expert personas to get specialized assistance. Personas auto-invoke based on conversation topics.
