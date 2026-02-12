@@ -9,18 +9,17 @@ Permanently delete persona skill directories from storage. Unlike `clear` which 
 
 ## Arguments
 
-`$ARGUMENTS` = optional archetype name(s) to delete (space-separated)
+`$ARGUMENTS` = archetype name(s) to delete (space-separated)
 
-## Storage Locations
-
-Personas are stored as skills in:
-
-- **Local**: `.claude/skills/assume-persona--<archetype>/`
-- **User**: `~/.claude/skills/assume-persona--<archetype>/`
+The user invoked: `/assume-persona:delete $ARGUMENTS`
 
 ## Instructions
 
-### 1. List Available Personas
+### 1. Check if argument provided
+
+If "$ARGUMENTS" is not empty, skip to Step 3 with that archetype.
+
+If "$ARGUMENTS" is empty, list available personas and ask which to delete:
 
 !`for dir in ~/.claude/skills/assume-persona--*/ .claude/skills/assume-persona--*/ 2>/dev/null; do [ -d "$dir" ] || continue; name=$(basename "$dir" | sed 's/assume-persona--//'); scope="user"; [[ "$dir" == .claude/* ]] && scope="local"; echo "- $name ($scope)"; done`
 
@@ -30,12 +29,17 @@ No personas found to delete.
 ```
 Stop here.
 
-### 2. Select Personas to Delete
-
-If `$ARGUMENTS` is empty, ask user:
+Ask user:
 ```
 Which persona(s) would you like to delete? (You can specify multiple, space-separated)
 ```
+
+### 2. Storage Locations
+
+Personas are stored as skills in:
+
+- **Local**: `.claude/skills/assume-persona--<archetype>/`
+- **User**: `~/.claude/skills/assume-persona--<archetype>/`
 
 ### 3. Validate Each Archetype
 
