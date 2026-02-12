@@ -111,6 +111,36 @@ export const AssumePersonaPlugin: Plugin = async (ctx) => {
     },
 
     /**
+     * Compaction hook - inject loaded personas into compaction context
+     * This ensures persona content survives context compaction
+     */
+    "experimental.session.compacting": async (input, output) => {
+      const sessionId = currentSessionId;
+      if (!sessionId) return;
+
+      const loadedPersonas = getLoadedPersonas(sessionId);
+      if (loadedPersonas.length === 0) return;
+
+      // Build persona content to inject
+      const personaContents: string[] = [];
+
+      for (const archetype of loadedPersonas) {
+        const content = readPersonaContent(archetype, cwd);
+        if (content) {
+          personaContents.push(`## Persona: ${archetype}\n\n${content}`);
+        }
+      }
+
+      if (personaContents.length > 0) {
+        output.context.push(`# Active Personas
+
+The following expert personas were loaded in this session and should be preserved:
+
+${personaContents.join("\n\n---\n\n")}`);
+      }
+    },
+
+    /**
      * Custom tools for persona management
      */
     tool: {

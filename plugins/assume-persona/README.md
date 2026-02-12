@@ -124,14 +124,10 @@ The OpenCode implementation shares the same persona format and most features, wi
 | Session tracking | Yes | Yes |
 | Deduplication | Per-session state | Per-session state |
 | Auto-invocation | Via skill descriptions | Via skill descriptions |
-| Post-compaction restore | Automatic | Manual (skill triggers on "resuming session" phrases) |
+| Post-compaction restore | Automatic | Automatic (via compaction hook) |
 | Persona format | `~/.claude/skills/assume-persona--*/` | Same (compatible) |
 
-**Post-compaction restore**
-
-In Claude Code, personas automatically restore after context compaction. In OpenCode, the `session-restore` skill triggers on conversational phrases like "resuming session", "where were we", or "continuing work" — but context compaction is a silent event that doesn't produce these phrases.
-
-If you notice degraded responses after a long session, run `/assume-persona:restore` to reload your personas.
+The implementations are now functionally equivalent. Both track session state, deduplicate persona loading, and preserve persona content through context compaction.
 
 ## Architecture (Claude Code)
 

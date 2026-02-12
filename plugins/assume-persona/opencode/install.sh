@@ -86,28 +86,6 @@ fi
 info "Plugin installed to $PLUGIN_DIR"
 
 # ============================================
-# Install session-restore skill
-# ============================================
-step "Installing session-restore skill..."
-
-SKILL_DIR="$HOME/.claude/skills/assume-persona--session-restore"
-mkdir -p "$SKILL_DIR"
-
-if [[ "$LOCAL_INSTALL" == true ]]; then
-  src="$SCRIPT_DIR/skills/assume-persona--session-restore/SKILL.md"
-  if [[ -f "$src" ]]; then
-    cp "$src" "$SKILL_DIR/SKILL.md"
-    echo "  + SKILL.md"
-  else
-    warn "Missing: skills/assume-persona--session-restore/SKILL.md"
-  fi
-else
-  curl -fsSL "$REPO_BASE/skills/assume-persona--session-restore/SKILL.md" -o "$SKILL_DIR/SKILL.md" 2>/dev/null && echo "  + SKILL.md" || warn "Failed to download skill"
-fi
-
-info "Session-restore skill installed to $SKILL_DIR"
-
-# ============================================
 # Install command files
 # ============================================
 step "Installing commands..."
