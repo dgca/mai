@@ -66,9 +66,22 @@ Read both `persona.md` and `SKILL.md` and check these requirements:
 - [ ] Created date is present (for staleness calculation)
 
 **SKILL.md requirements:**
-- [ ] Has frontmatter with: name, description
+- [ ] Has frontmatter with: name, description (only these two fields required)
+- [ ] No deprecated fields (remove `user-invocable` if present)
 - [ ] Description contains comma-separated trigger keywords
 - [ ] Keywords cover the domain comprehensively
+- [ ] Body format: `Read and adopt the persona from <path>/persona.md`
+
+Standard SKILL.md format:
+```markdown
+---
+name: assume-persona--<archetype>
+description: |
+  <Role> persona for <domain>. Invoke when discussing: <keyword1>, <keyword2>, ...
+---
+
+Read and adopt the persona from <location>/assume-persona--<archetype>/persona.md
+```
 
 ### 4. Content Staleness Check
 

@@ -205,10 +205,23 @@ Proceed directly to **Step 4: Save Persona**.
    3. Cancel
    ```
 
-3. **Generate SKILL.md description**:
+3. **Generate SKILL.md**:
    - Extract keywords from persona content (frontmatter keywords, section topics, technologies)
    - Create description that captures when to auto-invoke
    - Example: "Security expert persona. Invoke when discussing: security, authentication, authorization, OWASP, vulnerabilities, penetration testing."
+   
+   SKILL.md format:
+   ```markdown
+   ---
+   name: assume-persona--<archetype>
+   description: |
+     <keyword-rich description for auto-invocation>
+   ---
+
+   Read and adopt the persona from [location]/assume-persona--<archetype>/persona.md
+   ```
+   
+   Note: Only `name` and `description` are required in frontmatter.
 
 4. **Save both files**:
    - `[location]/assume-persona--[archetype]/persona.md`

@@ -117,14 +117,15 @@ If user chose Local or User, create the directory and save both files:
 The SKILL.md should contain:
 ```markdown
 ---
-name: assume-persona--[persona-name]
+name: assume-persona--<archetype>
 description: |
   [The description from step 6]
-user-invocable: false
 ---
 
-Load the [persona-name] persona from [location]/assume-persona--[persona-name]/persona.md
+Read and adopt the persona from [location]/assume-persona--<archetype>/persona.md
 ```
+
+Note: Only `name` and `description` are required in frontmatter. The description should be keyword-rich for auto-invocation matching.
 
 ## Step 9: Load the persona
 
