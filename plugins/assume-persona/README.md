@@ -140,3 +140,8 @@ The plugin has separate implementations for Claude Code (`scripts/`) and OpenCod
 Command instructions are duplicated because the platforms use different formats:
 - Claude Code: `skills/<command>/SKILL.md` (skill format with `!` script syntax)
 - OpenCode: `opencode/commands/assume-persona:<command>.md` (command format with tool instructions)
+
+## Future Work
+
+- **Shared lib**: Extract duplicated TypeScript logic (persona discovery, state management, validation) into a shared `lib/` directory that both `scripts/*.ts` and `opencode/plugin.ts` import from
+- **Unified prefix**: Update Claude Code to use `persona-` prefix for full cross-tool compatibility (breaking change for existing users)
