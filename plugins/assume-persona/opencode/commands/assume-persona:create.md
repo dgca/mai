@@ -127,13 +127,17 @@ Read and adopt the persona from [location]/assume-persona--<archetype>/persona.m
 
 Note: Only `name` and `description` are required in frontmatter. The description should be keyword-rich for auto-invocation matching.
 
-## Step 9: Load the persona
+## Step 9: Return for loading
 
-For all save options (including "Session only"):
-1. Display the full persona.md content to inject it into context
-2. Use the persona_load tool to mark it as loaded (for saved personas) or just output the content directly (for session-only)
+After saving (or for session-only), return a response that includes:
+1. Confirmation message
+2. Instruction for main session to load
 
-Confirm:
-> "Persona '<archetype>' created and activated.
->
-> The persona will auto-invoke when relevant topics are detected."
+Example:
+```
+Persona 'archetype' created and saved to [location].
+
+ACTION_REQUIRED: Load this persona with persona_load tool using archetype "<archetype>"
+```
+
+For session-only, include the full persona content in your response so the main session can use it directly.
