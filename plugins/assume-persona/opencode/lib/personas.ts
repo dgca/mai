@@ -17,6 +17,12 @@ import {
 // Persona storage locations (using ~/.claude/skills for cross-tool compatibility)
 const USER_SKILLS = join(homedir(), ".claude/skills");
 
+// Legacy prefix used by Claude Code - we read from both for compatibility
+const LEGACY_SKILL_PREFIX = "assume-persona--";
+
+// All prefixes to check when reading (order matters - new prefix first)
+const READ_PREFIXES = [PERSONA_SKILL_PREFIX, LEGACY_SKILL_PREFIX];
+
 function getLocalSkills(cwd: string): string {
   return join(cwd, ".claude/skills");
 }
@@ -74,23 +80,27 @@ function parseSkillDescription(skillPath: string): string {
 /**
  * Find a persona by archetype name
  * Local (project) takes precedence over user
+ * Checks both new (persona-) and legacy (assume-persona--) prefixes for compatibility
  */
 export function findPersona(
   archetype: string,
   cwd: string
 ): { path: string; scope: "local" | "user" } | null {
-  const skillDirName = `${PERSONA_SKILL_PREFIX}${archetype}`;
+  // Check each prefix (new prefix first, then legacy)
+  for (const prefix of READ_PREFIXES) {
+    const skillDirName = `${prefix}${archetype}`;
 
-  // Check local first
-  const localPath = join(getLocalSkills(cwd), skillDirName, "persona.md");
-  if (existsSync(localPath)) {
-    return { path: localPath, scope: "local" };
-  }
+    // Check local first
+    const localPath = join(getLocalSkills(cwd), skillDirName, "persona.md");
+    if (existsSync(localPath)) {
+      return { path: localPath, scope: "local" };
+    }
 
-  // Check user
-  const userPath = join(USER_SKILLS, skillDirName, "persona.md");
-  if (existsSync(userPath)) {
-    return { path: userPath, scope: "user" };
+    // Check user
+    const userPath = join(USER_SKILLS, skillDirName, "persona.md");
+    if (existsSync(userPath)) {
+      return { path: userPath, scope: "user" };
+    }
   }
 
   return null;
@@ -138,6 +148,7 @@ export function loadPersona(
 
 /**
  * Discover all personas in a directory
+ * Scans for both new (persona-) and legacy (assume-persona--) prefixes
  */
 function discoverPersonasInDir(
   dir: string,
@@ -146,15 +157,28 @@ function discoverPersonasInDir(
   autoLoadList: string[]
 ): PersonaInfo[] {
   const personas: PersonaInfo[] = [];
+  const seenArchetypes = new Set<string>();
 
   if (!existsSync(dir)) return personas;
 
   try {
     const entries = readdirSync(dir);
     for (const entry of entries) {
-      if (!entry.startsWith(PERSONA_SKILL_PREFIX)) continue;
+      // Check if entry matches any of our prefixes
+      let archetype: string | null = null;
+      for (const prefix of READ_PREFIXES) {
+        if (entry.startsWith(prefix)) {
+          archetype = entry.replace(prefix, "");
+          break;
+        }
+      }
+      
+      if (!archetype) continue;
+      
+      // Skip if we've already seen this archetype (new prefix takes precedence)
+      if (seenArchetypes.has(archetype)) continue;
+      seenArchetypes.add(archetype);
 
-      const archetype = entry.replace(PERSONA_SKILL_PREFIX, "");
       const skillDir = join(dir, entry);
       const personaPath = join(skillDir, "persona.md");
       const skillPath = join(skillDir, "SKILL.md");
