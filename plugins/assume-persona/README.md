@@ -144,10 +144,3 @@ The plugin has separate implementations for Claude Code (`scripts/`) and OpenCod
 - OpenCode: Commands trigger plugin tools defined in `plugin.ts`
 
 The instructions can't be shared directly, but some content within them (persona templates, validation rules, SKILL.md format) could be extracted into shared reference files.
-
-## Future Work
-
-- **Shared lib**: Extract duplicated TypeScript logic (persona discovery, state management, validation) into a shared `lib/` directory that both `scripts/*.ts` and `opencode/plugin.ts` import from
-- **Shared templates**: Extract persona template structure, validation rules, and SKILL.md format into shared markdown files that both platforms' command instructions reference
-- **Folder reorganization**: Move Claude Code files under `claude-code/` subdirectory to match `opencode/` structure
-- **Unified prefix**: Update Claude Code to use `persona-` prefix for full cross-tool compatibility (breaking change for existing users)
