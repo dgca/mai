@@ -198,3 +198,29 @@ export function getAutoLoadPersonas(cwd: string): string[] {
 export function getConfigPath(cwd: string): string {
   return getLocalConfigPath(cwd);
 }
+
+/**
+ * Track missing auto-load personas for a session
+ */
+export function setMissingAutoLoad(sessionId: string, missing: string[]): void {
+  if (missing.length === 0) return;
+  
+  const state = readState();
+
+  if (!state[sessionId]) {
+    state[sessionId] = { loadedPersonas: [], lastAccess: new Date().toISOString() };
+  }
+
+  const session = state[sessionId] as SessionState;
+  session.missingAutoLoad = missing;
+  session.lastAccess = new Date().toISOString();
+
+  writeState(state);
+}
+
+/**
+ * Get missing auto-load personas for a session
+ */
+export function getMissingAutoLoad(sessionId: string): string[] {
+  return getSessionState(sessionId)?.missingAutoLoad ?? [];
+}

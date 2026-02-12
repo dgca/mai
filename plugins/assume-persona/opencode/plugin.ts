@@ -19,6 +19,8 @@ import {
   markPersonasLoaded,
   pruneStaleState,
   isPersonaLoaded,
+  setMissingAutoLoad,
+  getMissingAutoLoad,
 } from "./lib/state";
 import {
   listPersonas,
@@ -69,12 +71,20 @@ export const AssumePersonaPlugin: Plugin = async (ctx) => {
 
         // Load personas and build output
         const loaded: Array<{ archetype: string; content: string }> = [];
+        const missing: string[] = [];
 
         for (const archetype of autoLoadArchetypes) {
           const content = readPersonaContent(archetype, cwd);
           if (content) {
             loaded.push({ archetype, content });
+          } else {
+            missing.push(archetype);
           }
+        }
+
+        // Track missing auto-load personas so we can warn in status
+        if (missing.length > 0) {
+          setMissingAutoLoad(currentSessionId, missing);
         }
 
         if (loaded.length === 0) return;
@@ -316,8 +326,9 @@ ${personaContents.join("\n\n---\n\n")}`);
           const loadedPersonas = getLoadedPersonas(sessionId);
           const autoLoad = getAutoLoadPersonas(cwd);
           const configPath = getConfigPath(cwd);
+          const missingAutoLoad = getMissingAutoLoad(sessionId);
 
-          if (loadedPersonas.length === 0) {
+          if (loadedPersonas.length === 0 && missingAutoLoad.length === 0) {
             return `# Persona Status
 
 No personas loaded this session.
@@ -326,11 +337,29 @@ No personas loaded this session.
 - List available: \`persona_list\` tool or \`/assume-persona:list\``;
           }
 
-          const lines = ["# Persona Status\n", "## Loaded Personas"];
+          const lines = ["# Persona Status\n"];
 
-          for (const archetype of loadedPersonas) {
-            const isAuto = autoLoad.includes(archetype);
-            lines.push(`- ${archetype}${isAuto ? " (auto-loaded)" : ""}`);
+          // Show warning about missing auto-load personas first
+          if (missingAutoLoad.length > 0) {
+            lines.push("## ⚠️ Missing Auto-Load Personas\n");
+            lines.push("The following personas are configured for auto-load but were not found:\n");
+            for (const archetype of missingAutoLoad) {
+              lines.push(`- ${archetype}`);
+            }
+            lines.push(`\nCreate them with \`/assume-persona:create <name>\` or remove from config.\n`);
+            lines.push(`Config: ${configPath}\n`);
+          }
+
+          if (loadedPersonas.length > 0) {
+            lines.push("## Loaded Personas");
+
+            for (const archetype of loadedPersonas) {
+              const isAuto = autoLoad.includes(archetype);
+              lines.push(`- ${archetype}${isAuto ? " (auto-loaded)" : ""}`);
+            }
+          } else {
+            lines.push("## Loaded Personas\n");
+            lines.push("None loaded this session.");
           }
 
           lines.push("\n## Quick Actions");
@@ -338,7 +367,8 @@ No personas loaded this session.
           lines.push("- Load another: `/assume-persona:load <name>`");
           lines.push("- List all: `/assume-persona:list`");
 
-          if (autoLoad.length > 0) {
+          // Only show config path if we have auto-load and didn't already show it in warnings
+          if (autoLoad.length > 0 && missingAutoLoad.length === 0) {
             lines.push(`\n**Auto-load config**: ${configPath}`);
           }
 

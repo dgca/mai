@@ -5,6 +5,7 @@
 export interface SessionState {
   loadedPersonas: string[];
   lastAccess: string;
+  missingAutoLoad?: string[];
 }
 
 export interface State {
